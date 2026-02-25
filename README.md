@@ -1,6 +1,5 @@
 <div align="center">
     <h1>Code Review Benchmark</h1>
-  
     <p>
       <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT License"></a>
       <a href="https://discord.com/invite/kX6s6nV3zT"><img src="https://img.shields.io/badge/discord-join-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
@@ -19,7 +18,7 @@
   </picture>
 </div>
 
-Open-source benchmark for evaluating AI code review tools — the datasets, the judge, and the pipeline code. Reproduce our results or evaluate your own tool.
+Open-source benchmark for evaluating AI code review tools — the datasets, the judge, and the pipeline code. Reproduce our results or evaluate your own tool
 
 ## The problem
 
