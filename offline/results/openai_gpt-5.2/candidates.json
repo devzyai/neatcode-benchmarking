@@ -225,6 +225,32 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "Lithuanian login messages file (messages_lt.properties) has loginTotpStep1 value replaced with Italian text instead of Lithuanian",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Lithuanian account messages file (messages_lt.properties) has totpStep1 value replaced with Italian text instead of Lithuanian",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Simplified Chinese account messages file (messages_zh_CN.properties) has totpStep1 value using Traditional Chinese characters instead of Simplified Chinese",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In VerifyMessageProperties.verifySafeHtml error-reporting logic, independently computed prefix/suffix strip indices can overlap (start + end exceeds shorter string length), causing substring(start, length - end) to throw StringIndexOutOfBoundsException and crash the theme verifier plugin",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/keycloak/keycloak/pull/37634": {
@@ -521,6 +547,32 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "AccessTokenContext constructor mistakenly calls Objects.requireNonNull(grantType, \"Null rawTokenId not allowed\") instead of validating rawTokenId, so rawTokenId can be null without being checked",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "AssertEvents.isAccessTokenId matcher uses wrong substring indices (substring(3,5) instead of substring(4,6)) when extracting the grant type shortcut from the encoded token ID",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "AssertEvents.isAccessTokenId matcher has inverted equality logic, returning false when the extracted grant shortcut equals the expected value instead of when it differs",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "ClientCredentialsGrantType.process() does not set Constants.GRANT_TYPE on clientSessionCtx (and bypasses OAuth2GrantTypeBase.createTokenResponse), causing client-credentials tokens to encode an 'unknown' grant type in the token ID",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/keycloak/keycloak/pull/38446": {
@@ -760,7 +812,8 @@
         "line": null,
         "source": "extracted"
       }
-    ]
+    ],
+    "devin": []
   },
   "https://github.com/keycloak/keycloak/pull/36882": {
     "claude": [],
@@ -875,7 +928,8 @@
         "line": null,
         "source": "extracted"
       }
-    ]
+    ],
+    "devin": []
   },
   "https://github.com/keycloak/keycloak/pull/36880": {
     "claude": [
@@ -1182,6 +1236,14 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "ClientPermissionsV2.hasPermission calls AdminPermissionsSchema.SCHEMA.getResourceTypeResource and then passes the result directly to PolicyStore.findByResource without a null check, causing a NullPointerException when getResourceTypeResource returns null (e.g., unsupported schema, missing resource type, or findByName returns null).",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/keycloak/keycloak/pull/37038": {
@@ -1381,6 +1443,20 @@
       },
       {
         "text": "GroupPermissionsV2.getGroupIdsWithViewPermission() returns authorization resource IDs (and checks permissions using those IDs) instead of Keycloak GroupModel IDs/resource names, breaking downstream group-based user filtering (e.g., /users/count returning 0 and disabling DB-side restriction for group-scoped visibility)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "devin": [
+      {
+        "text": "GroupPermissionsV2.canManage() (no-arg) incorrectly checks VIEW and MANAGE scopes, granting manage access to users with only VIEW permission (privilege escalation)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Because GroupPermissions.requireManage() relies on the flawed no-arg canManage(), users with only group VIEW permission can create top-level groups via GroupsResource.addTopLevelGroup(), bypassing intended authorization",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -1686,7 +1762,8 @@
         "line": null,
         "source": "extracted"
       }
-    ]
+    ],
+    "devin": []
   },
   "https://github.com/keycloak/keycloak/pull/40940": {
     "gemini": [
@@ -1935,6 +2012,14 @@
       },
       {
         "text": "The reader loop in the test has no sleep/backoff, causing a busy-spin that can consume high CPU while waiting for completion",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "devin": [
+      {
+        "text": "getSubGroupsCount() returns null when modelSupplier.get() is null, violating the GroupModel.getSubGroupsCount() contract that it never returns null and risking NullPointerException for callers that auto-unbox the result",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -2405,6 +2490,20 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "Guarding process.kill() with isinstance(process, multiprocessing.Process) fails for spawn-context SpawnProcess, so hung/dead flusher processes are never killed and can remain running (zombie/double-flush risk)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In join(), guarding process.terminate() with isinstance(process, multiprocessing.Process) fails for spawn-context SpawnProcess, so still-running processes are never terminated, potentially hanging shutdown or leaving orphan processes",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/5": {
@@ -2670,6 +2769,32 @@
       },
       {
         "text": "fetch_error_details() pairs error_ids with nodestore results using zip(error_ids, events.values()) from get_multi(), which can mismatch error_id to payload (and/or truncate when some keys are missing) because dict values ordering/completeness is not guaranteed",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "devin": [
+      {
+        "text": "In fetch_error_details, zipping error_ids with events.values() from nodestore.get_multi pairs IDs with unordered dict values, causing mismatched error data when cache/service merge changes iteration order",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In fetch_error_details, missing nodestore entries cause zip(error_ids, events.values()) to truncate and misalign remaining events to the wrong error_ids, corrupting replay summary error details",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "HIDDEN_ATTRIBUTES are only filtered out when a search query is present; when searchQuery is empty the early return skips filtering and shows hidden/internal attributes",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "analytics.record is called before the feature flag check in ProjectPreprodArtifactAssembleEndpoint.post, recording analytics events even when the feature is disabled and the request returns 404",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -3089,6 +3214,38 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "OptimizedCursorPaginator.get_item_key incorrectly applies math.floor/ceil to a datetime value (copied from numeric Paginator), causing a TypeError when paginating audit logs ordered by -datetime",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "OptimizedCursorPaginator.value_from_cursor returns the raw integer cursor value instead of converting it back to a timezone-aware datetime for queryset filtering, breaking datetime-based pagination",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "OptimizedCursorPaginator.get_result can pass a negative start_offset into Django QuerySet slicing when enable_advanced_features is enabled and cursor.offset < 0, triggering AssertionError because Django disallows negative indexing",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "organization_auditlogs endpoint accesses organization_context.member.has_global_access without guarding member being None, risking AttributeError if member is missing",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "BasePaginator.get_result allows negative offsets to pass through for is_prev cursors (start_offset = offset), which can cause Django QuerySet slicing to raise AssertionError on negative indexing",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/grafana/grafana/pull/97529": {
@@ -3339,6 +3496,20 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "History() calls s.search.History(...) without checking if s.search is nil, which can cause a nil pointer panic when search is not configured/feature flag disabled",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Origin() calls s.search.Origin(...) without checking if s.search is nil, which can cause a nil pointer panic when search is not configured/feature flag disabled",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/getsentry/sentry/pull/80168": {
@@ -3536,6 +3707,26 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "MetricAlertDetectorHandler extends StatefulDetectorHandler but does not implement required abstract methods (counter_names, get_dedupe_value, get_group_key_values, build_occurrence_and_event_data), making it abstract",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Runtime crash when accessing Detector.detector_handler for type \"metric_alert_fire\" because it tries to instantiate the abstract MetricAlertDetectorHandler, raising a TypeError",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "TestEvaluateGroupKeyValue.test_dedupe builds the expected occurrence using group_key \"val1\" but evaluates using group_key \"group_key\", causing mismatched fingerprints and an incorrect assertion (may mask bugs or fail)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/getsentry/sentry/pull/80528": {
@@ -3718,6 +3909,14 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "get_monitor_environment_context returns monitor_environment.monitor.config (original) instead of the locally modified config copy, so the schedule_type human-readable transformation is not included in the returned context",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/getsentry/sentry/pull/77754": {
@@ -3896,6 +4095,14 @@
       },
       {
         "text": "AssignmentSource.from_dict constructs the dataclass from unvalidated Any-typed dict values (no coercion/validation), so integration_id can arrive as a non-int (e.g., string) and cause the cycle-prevention equality check to silently fail across serialization/task boundaries",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "devin": [
+      {
+        "text": "AssignmentSource dataclass sets queued default as timezone.now() evaluated at class definition/import time, causing all instances without an explicit queued value to share the same timestamp instead of getting the creation time (should use field(default_factory=timezone.now)).",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -4147,6 +4354,32 @@
       },
       {
         "text": "OffsetTracker.get_committable_offsets has worst-case O(max_offset-min_offset) scanning via range(start, max_offset+1) and retains large in-flight offset sets, causing potential CPU/memory overhead (especially since it runs every second in the commit loop)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "devin": [
+      {
+        "text": "FixedQueuePool.shutdown() sets worker.shutdown = True before calling q.shutdown(immediate=False), allowing workers to exit their loop early and leave queued items unprocessed (message loss during graceful shutdown/rebalance)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Because workers can exit before draining, offsets may be added via add_offset but never completed via complete_offset, so offsets are never committed and work is silently dropped",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "SimpleQueueProcessingStrategy.close() calls self.queue_pool.shutdown() even though the FixedQueuePool is a shared resource owned by ResultsStrategyFactory, leaving the factory with a permanently shut-down pool after a rebalance",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "After a rebalance, a new strategy can be created with the already-shut-down queue_pool, causing subsequent submit()/queue.put() calls to fail with queue.ShutDown and the consumer to stop processing until restart",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -4825,6 +5058,20 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "In organization_events_stats._get_event_stats, the upsampling eligibility check uses the outer closure variable `dataset` instead of the function parameter `scoped_dataset`, leading to incorrect upsampling decisions when called with a different dataset",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In error_upsampling.py, the cache key uses Python's non-deterministic `hash()` on project IDs, causing cache misses across processes and preventing proper cross-worker cache invalidation",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/grafana/grafana/pull/103633": {
@@ -5016,6 +5263,26 @@
       },
       {
         "text": "Test 'Should deny on explicit cache deny entry' is incorrect because it sets permCache permission to false while claiming it allows, so it doesn't actually prove denial-cache precedence and may mask regressions",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "devin": [
+      {
+        "text": "Denial cache is checked first in Check() and short-circuits permission cache/DB refresh, so stale denial entries can incorrectly override newly-granted permissions",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Denial cache entries are never invalidated when getIdentityPermissions refreshes the permission cache, allowing previously cached denials to persist for up to the TTL after permissions change",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Denial cache key format can collide with permission cache key format because both share the same underlying cache and use '_' separators while components may contain underscores, leading to ambiguous keys and potential cross-type reads/JSON unmarshal failures",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -5305,6 +5572,20 @@
       },
       {
         "text": "GitHubInstallation queries Integration.objects.get(external_id=...) without scoping by provider even though uniqueness is (provider, external_id), risking MultipleObjectsReturned or selecting the wrong integration when IDs collide across providers",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "devin": [
+      {
+        "text": "Accessing integration.metadata[\"sender\"][\"login\"] can raise a KeyError when the \"sender\" key is missing from integration metadata, resulting in a 500 error and blocking GitHub re-installation flows (e.g., after install+uninstall or for pre-existing integrations).",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "ensure_integration/integration.update(**defaults) overwrites the entire metadata dict during pipeline completion, which can remove a previously set \"sender\" field and later cause failures when code assumes it exists.",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -5755,6 +6036,26 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "enableSqlExpressions uses an inverted feature-flag check by negating IsEnabledGlobally(featuremgmt.FlagSqlExpressions), causing enabled to be false when the flag is actually enabled",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "enableSqlExpressions returns false in both branches / has no code path that returns true, so SQL expressions can never be enabled",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Because enableSqlExpressions always returns false, the caller rejects all SQL expression queries with \"sqlExpressions is not implemented\" even when the sqlExpressions feature flag is enabled",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/grafana/grafana/pull/90939": {
@@ -5895,6 +6196,14 @@
       },
       {
         "text": "On cache miss, GetWebAssets upgrades from RLock to Lock without re-checking the shared cache after acquiring the write lock, allowing concurrent goroutines to redundantly recompute and overwrite the cache",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "devin": [
+      {
+        "text": "After acquiring the write lock in the double-checked locking pattern, the code does not re-check entryPointAssetsCache, causing concurrent goroutines to redundantly re-read the manifest from disk and overwrite the cache.",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -6206,6 +6515,38 @@
       },
       {
         "text": "Integration subtests register `t.Cleanup` after setup/actions that can fail via fatal assertions (`require.*`), so failures can prevent cleanup and leave DB tables dirty for later subtests, causing flaky/cascading failures",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "devin": [
+      {
+        "text": "In CleanAnnotations and CleanOrphanedAnnotationTags (xorm_store.go lines 534, 537, 554, 557, 576, 579), routine cleanup progress messages are logged with r.log.Error instead of a lower level (e.g., Debug), causing non-error spam in error logs",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "The cleanup loop (untilDoneOrCancelled) logs these messages on every batch iteration, which can flood production error logs and potentially trigger error-volume alerts",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Cleanup logging includes dumping full annotation/tag ID lists (e.g., \"ids\", ids), which can create very large log entries for big batches",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In cleanup.go line 77, the cleanup service ticker interval was reduced from 10 minutes to 1 minute, making all cleanup jobs run 10x more frequently than intended",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "With a 1-minute ticker but a 9-minute clean() timeout, long-running cleanups can cause ticks to buffer and then run back-to-back, increasing load",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -6692,6 +7033,38 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "Create: when d.Storage.Create fails, the error path records duration with d.recordLegacyDuration instead of d.recordStorageDuration, misattributing storage failure latency to legacy metrics",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Update: when d.Storage.Update fails, the error path records duration with d.recordLegacyDuration instead of d.recordStorageDuration, misattributing storage failure latency to legacy metrics",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "DeleteCollection: the goroutine performing d.Legacy.DeleteCollection records duration with d.recordStorageDuration instead of d.recordLegacyDuration, misattributing legacy latency to storage metrics",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Delete: success path passes the object name as the 'kind' label to recordStorageDuration instead of options.Kind, causing high-cardinality metric labels",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Delete: klog.NewContext uses d.Log instead of the enriched log (with name/kind/method), so downstream logging from ctx lacks those fields",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/grafana/grafana/pull/106778": {
@@ -6968,6 +7341,26 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "SilenceGrafanaRuleDrawer never renders when RuleActionsButtons receives only promRule (no rulerRule) because it is guarded by rulerRuleType.grafana.alertingRule(rule) and rule is undefined, so clicking \u201cSilence notifications\u201d does nothing in the new list view",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "FilterView.tsx renders GrafanaRuleListItem inside a .map() without passing a key prop, causing React key warnings and potential incorrect reconciliation/stale UI state",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "useAllGrafanaPromRuleAbilities incorrectly restricts the ModifyExport ability to Grafana alerting rules only (using prometheusRuleType.grafana.alertingRule), so Grafana recording rules lose the Export menu item even though export is supported",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/grafana/grafana/pull/107534": {
@@ -7113,6 +7506,20 @@
       },
       {
         "text": "Repeated template/ad-hoc filter application in split/shard execution can compound the risk of duplicated ad-hoc filters (double-ad-hoc-filter risk) in the resulting requests",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "devin": [
+      {
+        "text": "runSplitQuery applies applyTemplateVariables to targets that were already interpolated by runShardSplitQuery, causing double interpolation when shard splitting delegates to time splitting",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Double interpolation triggers addAdHocFilters twice, resulting in duplicate ad-hoc filter labels/predicates being appended to Loki queries and corrupting the final expression when shard-based query splitting is used",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -7411,6 +7818,20 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "tagDeviceUI populates the local cache before calling CreateOrUpdateDevice, so if the DB returns ErrDeviceLimitReached the cache remains set and subsequent requests bypass the device limit for the cache TTL (~29 minutes)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "CreateOrUpdateDevice has a TOCTOU race: the device count check and the insert are not atomic, allowing concurrent requests to both pass the limit check and insert, exceeding the configured device limit",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/9": {
@@ -7582,6 +8003,14 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "LRU cache key in translate_accelerator.rb does not include SiteSetting.default_locale, so when the dynamic fallback chain changes (via FallbackLocaleList), cached translations can become stale after the site default locale is updated",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/grafana/grafana/pull/76186": {
@@ -7680,6 +8109,20 @@
       },
       {
         "text": "LoggerMiddleware now relies on logger.FromContext(ctx) for traceID enrichment, but the traceID contextual log provider is only registered when tracing.ProvideService is called, so in tests or non-standard setups plugin request logs can silently miss trace IDs",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "devin": [
+      {
+        "text": "TestLogger.FromContext returns a new disconnected TestLogger instance (NewTestLogger()) instead of the receiver, causing logs to be recorded on a throwaway logger rather than the one referenced by tests",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Because TestLogger.FromContext returns a new instance, log assertions in tests (e.g., checking InfoLogs.Calls/messages) can silently show zero calls even when logging occurred via logger.FromContext(ctx).Info(...), breaking the test double contract",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -8172,6 +8615,20 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "Migration can crash with NoMethodError by unconditionally accessing result[0]['id'] when the embed_category setting is missing or no category matches (query returns zero rows)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Migration builds an INSERT SQL string by interpolating unescaped host values (h) from site_settings, which can break on quotes and enables SQL injection; should use quoting/parameterization",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/7": {
@@ -8469,6 +8926,38 @@
       },
       {
         "text": "In app/assets/stylesheets/desktop/user.scss (and similarly mobile/user.scss), .group-member-info .name uses a weaker 50%/50% lightness pair instead of the base name styling\u2019s stronger 30%/70%, making group member names less prominent and inconsistent",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "devin": [
+      {
+        "text": "In desktop/topic-post.scss for `.embedded-posts .topic-meta-data h5 a`, the `dark-light-choose` light/dark values are swapped, changing light-theme link color from `scale-color($primary, $lightness: 30%)` to `70%` and making embedded post meta-data links/author names hard to read on light themes",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In mobile/modal.scss for `.custom-message-length`, the `dark-light-choose` light/dark values are swapped, changing light-theme color from `scale-color($primary, $lightness: 70%)` to `30%` and inverting intended contrast on both light and dark themes",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In mobile/topic-post.scss for `.topic-map h3`, the `dark-light-choose` transformation changes the light-theme lightness from `20%` to `50%` (and uses `50%` for both branches), making headings less prominent and inconsistent with the desktop equivalent",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In desktop/user.scss for `.group-member-info .name`, the `dark-light-choose` transformation changes the light-theme lightness from `30%` to `50%`, making group member names lighter and less readable on light themes",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In mobile/user.scss for `.group-member-info .name`, the `dark-light-choose` transformation changes the light-theme lightness from `30%` to `50%`, making group member names lighter on light themes",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -8882,6 +9371,20 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "totalPages calculation uses Math.floor(user_count / limit) + 1, causing an off-by-one error when user_count is evenly divisible by limit (should use Math.ceil)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Inflated totalPages prevents showingLast (currentPage === totalPages) from being true on the real last page, leaving the Next button enabled and allowing navigation to a phantom empty final page",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/3": {
@@ -9190,6 +9693,20 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "BlockedEmail.should_block? is invoked twice per signup because UsersController#create calls user.valid? and then user.save (which re-runs validations), causing match_count and last_match_at to be updated twice per attempt",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "BlockedEmail.should_block? increments match_count via a non-atomic read-modify-write (load record, increment in Ruby, save), which can lose updates under concurrent requests",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/5": {
@@ -9362,6 +9879,20 @@
       },
       {
         "text": "Flexbox alignment mixin incomplete for legacy Mozilla box model: `flexbox()`/`inline-flex()` emit `display: -moz-box`/`-moz-inline-box` but `align-items()` does not emit `-moz-box-align`, causing incorrect alignment when falling back to the -moz box display mode (e.g., `.badge-wrapper.bullet` baseline alignment)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "devin": [
+      {
+        "text": "In the `order` mixin, `-webkit-box-ordinal-group` (and `-moz-box-ordinal-group`) incorrectly uses `$val` directly even though the old 2009 flexbox property is 1-indexed, causing off-by-one ordering differences vs standard `order` (should be `$val + 1`).",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`@include order(2)` on `.extra-info-wrapper` has no effect because `.extra-info-wrapper` is not a direct child of the flex container `.contents` (it is wrapped by an Ember component div), so the element is not reordered as intended.",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -9596,6 +10127,26 @@
       },
       {
         "text": "User profile template guards rendering on `model.website_name` but uses `model.website` for the `<a href>`, which can produce a broken/empty link when `website` is omitted/hidden",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "devin": [
+      {
+        "text": "Method `include_website_name` is missing the required `?` suffix (`include_website_name?`), so ActiveModel::Serializer never calls it as an inclusion guard and `website_name` is always serialized",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Because the `website_name` inclusion guard is not invoked, `website_name` is serialized even when `website` is blank/nil, adding an unnecessary `nil` field to the JSON output",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Broken `include_website_name?` guard causes a privacy leak: `website` is in `untrusted_attributes` (hidden for anonymous TL0 profile views) but `website_name` is not, so the user\u2019s website hostname can be exposed to anonymous viewers",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -10249,6 +10800,32 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "Invalid ERB/Ruby syntax `<%- end if %>` (missing condition) in `app/views/embed/best.html.erb` causes a `SyntaxError` and crashes template rendering",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`app/jobs/scheduled/poll_feed.rb` calls `i.content.scrub` without nil-check/fallback; feeds without `content` (using `description`) cause `NoMethodError` and crash the polling job",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "XSS risk in `app/views/layouts/embed.html.erb` by interpolating unescaped `request.referer` into a single-quoted JavaScript string; a `'` in the referer can break out and inject script",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`TopicEmbed#import` mutates the caller-provided `contents` string in-place via `<<`, potentially causing unexpected side effects and repeated footer accumulation on reuse",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/1": {
@@ -10670,6 +11247,50 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "Duplicate `OptimizedImage.downsize` method definitions in `app/models/optimized_image.rb` cause the later 3-arg version to overwrite the existing 4-arg version (Ruby has no method overloading)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`app/jobs/regular/resize_emoji.rb:14` calls `OptimizedImage.downsize(path, path, 100, 100, opts)` with 5 positional args, which will raise `ArgumentError` after the method is overwritten to accept only 3..4 args",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`lib/tasks/uploads.rake:347` also calls `OptimizedImage.downsize` with separate width/height args and will similarly break due to the overwritten method signature",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Client-side upload validation in `validateUploadedFile` (`app/assets/javascripts/discourse/lib/utilities.js:182`) hardcodes a 10MB limit, ignoring admin-configured `max_image_size_kb` / `max_attachment_size_kb` settings and losing per-type limits",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "The upload validation error message (around `utilities.js:184`) will display `10240` KB instead of the configured max size because of the hardcoded 10MB value",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Existing JS tests (`test/javascripts/lib/utilities-test.js.es6:52-61`) will fail because they expect site-setting-based limits (e.g., `max_image_size_kb = 5`) but the code now uses a hardcoded 10240KB limit",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`displayErrorForUpload` 413 handler (`app/assets/javascripts/discourse/lib/utilities.js:246`) hardcodes 10MB, causing the 'file too large' message to always show 10240 KB regardless of actual server/site configuration",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/2": {
@@ -10956,6 +11577,14 @@
       },
       {
         "text": "Frontend unsubscribe route tries to hide notification reason text by setting details.notificationReasonText to null, but notificationReasonText is a computed property that still returns a translated string, so the reason text will still appear / the set is ineffective",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "devin": [
+      {
+        "text": "unsubscribe action does not handle missing TopicUser record: TopicUser.find_by can return nil and the next line calls tu.notification_level, causing NoMethodError/500 when user has no TopicUser for the topic (e.g., unsubscribe link from email)",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -11319,6 +11948,20 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "Prisma updateMany called with empty data (SelectedCalendarRepository.updateManyByCredentialId(this.credential.id, {})) is a no-op and does not trigger @updatedAt, so SelectedCalendar.updatedAt is never refreshed as intended",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "connectedCalendarsHandler directly instantiates CalendarCacheRepository instead of using CalendarCache.init(), bypassing the calendar-cache feature flag and causing cache status/UI to appear even when the feature is disabled",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/calcom/cal.com/pull/8330": {
@@ -11647,6 +12290,20 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "Comparing two separately created Dayjs objects with `===` uses reference equality and will always be false, so the intended start==end (zero-length override) check never triggers; should use `.isSame()`",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`end` is computed from `slotStartTime` instead of `slotEndTime`, making `end` equal to `start` and breaking the working-hours boundary check for slots that extend past working hours",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/calcom/cal.com/pull/14943": {
@@ -11872,6 +12529,14 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "The deleteMany query\u2019s second OR branch filters only on retryCount > 1 without constraining method, so the SMS cron job can delete non-SMS (EMAIL/WHATSAPP) WorkflowReminder rows with retryCount > 1; add method: WorkflowMethods.SMS to that branch.",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/calcom/cal.com/pull/22345": {
@@ -12081,7 +12746,8 @@
         "line": null,
         "source": "extracted"
       }
-    ]
+    ],
+    "devin": []
   },
   "https://github.com/calcom/cal.com/pull/11059": {
     "gemini": [
@@ -12792,6 +13458,44 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "Google Calendar token refresh stores the full Zod safeParse result ({ success, data }) as the credential key instead of storing only the parsed data object, corrupting the saved credentials",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "After the corrupted Google Calendar credential key is saved, subsequent loads fail because googleCredentialSchema.parse expects the token fields directly but receives a { success, data } wrapper, breaking the integration after first refresh",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Zoho Bigin passes credential.id (credential row ID) as the userId argument to refreshOAuthTokens instead of passing credential.userId, causing the credential sharing sync endpoint to receive the wrong calcomUserId",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "When credential sharing is enabled, refreshOAuthTokens returns a raw fetch Response object, but the Hubspot integration treats it as a HubspotToken and reads .expiresIn/.accessToken, resulting in NaN expiry and missing access token",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "The same credential-sharing return-type mismatch (fetch Response vs expected axios/googleapis response data) also affects Zoho Bigin, Zoho CRM, and Google Calendar callers that expect a parsed token object or .data",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "minimumTokenResponseSchema in parseRefreshTokenResponse.ts incorrectly uses Zod objects as computed property keys, which stringify to \"[object Object]\" and overwrite each other, effectively disabling intended expiry/extra-field validation",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/calcom/cal.com/pull/7232": {
@@ -13077,6 +13781,38 @@
       },
       {
         "text": "Cron cancellation errors are only console.logged rather than being properly handled/retried/propagated",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "devin": [
+      {
+        "text": "`deleteScheduledEmailReminder` returns early in the `immediateDelete=true` branch (when `referenceId` exists) after cancelling SendGrid, so it never deletes the corresponding `workflowReminder` DB record",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Reschedule path (`handleNewBooking.ts`) can accumulate orphaned `workflowReminder` records with `scheduled: true` and `cancelled: null`, which are not cleaned by the CRON cancel loop until after `scheduledDate` passes",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In the CRON cancellation handler, a single SendGrid cancel request failure aborts the entire `for...of` loop because the `try-catch` wraps the whole loop, preventing remaining cancellations from running",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Because the CRON loop aborts on one failure, `Promise.all(workflowRemindersToDelete)` is never reached, so even successfully cancelled reminders in SendGrid are not deleted from the DB",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "The CRON cancellation logic can get stuck retrying the same reminders (including already-cancelled ones) and potentially permanently block cancellation of later reminders due to repeated failures",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -13523,6 +14259,20 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "Authorization check for isTeamAdminOrOwner incorrectly uses && instead of ||, requiring users to be both team admin and owner and denying access to admins who are not owners",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "sendAddGuestsEmails is called with the unfiltered guests array instead of the deduplicated uniqueGuests, causing existing attendees to receive the wrong (booking confirmation) email template",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/calcom/cal.com/pull/10600": {
@@ -13871,6 +14621,14 @@
       },
       {
         "text": "New backup-code related i18n keys were added only to en/common.json, so other locales may display raw translation keys until updated",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "devin": [
+      {
+        "text": "Backup code comparison uses case-sensitive Array.indexOf without normalizing input to lowercase, causing valid uppercase backup codes to be rejected in login and disable endpoints",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -14235,6 +14993,38 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "devin": [
+      {
+        "text": "Google Calendar createEvent: patch call uses calendarId: selectedCalendar without the same fallback (selectedCalendar || \"primary\") used for insert, so selectedCalendar can be undefined and the hangout link update fails when no matching credentialId is found",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "EventManager: destructuring destinationCalendar into mainHostDestinationCalendar can yield undefined when destinationCalendar is null/undefined/empty, and then accessing mainHostDestinationCalendar.integration causes a TypeError crash",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Google Calendar updateEvent: selectedCalendar fallback is broken because when externalCalendarId is falsy it still uses externalCalendarId in the find() predicate, so no match is found and calendarId becomes undefined",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Google Calendar deleteEvent: calendarId fallback has the same self-referencing falsy externalCalendarId find() bug, causing calendarId to resolve to undefined and deletions to incorrectly fall back to \"primary\" instead of the destination calendar",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Organization creation: slug assignment conditional is inverted, setting slug when team billing is enabled instead of when it is disabled, leading to missing slugs in non-billing deployments and double-setting slug/requestedSlug in billing deployments",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/calcom/cal.com/pull/8087": {
@@ -14415,6 +15205,56 @@
       },
       {
         "text": "Errors from the external deletion operations are dropped/not observed because the deletion promises are not awaited or properly handled",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "devin": [
+      {
+        "text": "In packages/app-store/vital/lib/reschedule.ts (lines 125-134), using bookingRefsFiltered.forEach(async ...) means the surrounding try/catch does not catch errors from awaited operations inside the callback, leading to unhandled promise rejections",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In packages/app-store/vital/lib/reschedule.ts, the async forEach makes calendar/video deletions fire-and-forget so sendRequestRescheduleEmail runs before deletions complete (or even start)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In packages/app-store/wipemycalother/lib/reschedule.ts (lines 125-134), using forEach(async ...) bypasses the surrounding try/catch so errors inside the async callback are not caught and can become unhandled promise rejections",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In packages/app-store/wipemycalother/lib/reschedule.ts, the async forEach causes calendar/video deletions to be fire-and-forget and the reschedule email is sent before deletions complete",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In packages/trpc/server/routers/viewer/bookings.tsx (lines 553-567), using forEach(async ...) makes calendar/video deletions fire-and-forget so sendRequestRescheduleEmail executes before deletions complete",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In packages/trpc/server/routers/viewer/bookings.tsx, errors thrown during async deletions inside forEach are not handled (no try/catch or .catch), causing unhandled promise rejections",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In packages/features/bookings/lib/handleCancelBooking.ts (lines 460-470), forEach(async ...) pushes deletion promises into apiDeletes asynchronously, so apiDeletes is still empty when Promise.all(prismaPromises.concat(apiDeletes)) runs at line 652",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In packages/features/bookings/lib/handleCancelBooking.ts, recurring booking calendar events may not be deleted before the function returns and success is reported because deletion work is still in-flight or not started when Promise.all is awaited",
         "path": null,
         "line": null,
         "source": "extracted"

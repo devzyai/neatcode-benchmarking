@@ -570,6 +570,55 @@
       "tool": "qodo-v2",
       "repo_name": "keycloak__keycloak__qodo-v2__PR37429__20260227",
       "pr_url": "https://github.com/code-review-benchmark/keycloak__keycloak__qodo-v2__PR37429__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "The translation is in Italian instead of Lithuanian. This should be translated to Lithuanian to match the file's locale (messages_lt.properties).",
+          "severity": "Medium",
+          "matched_candidate": "Lithuanian login messages file (messages_lt.properties) has loginTotpStep1 value replaced with Italian text instead of Lithuanian",
+          "confidence": 0.96,
+          "reasoning": "Both point out that in messages_lt.properties (Lithuanian locale), the loginTotpStep1 string is incorrectly in Italian and should be Lithuanian."
+        },
+        {
+          "golden_comment": "The totpStep1 value uses Traditional Chinese terms in the Simplified Chinese file (zh_CN), which is likely incorrect for this locale. Please verify the locale\u2011appropriate translation.",
+          "severity": "Medium",
+          "matched_candidate": "Simplified Chinese account messages file (messages_zh_CN.properties) has totpStep1 value using Traditional Chinese characters instead of Simplified Chinese",
+          "confidence": 0.95,
+          "reasoning": "Both the golden comment and the candidate issue point out that the zh_CN (Simplified Chinese) translation for totpStep1 incorrectly uses Traditional Chinese characters/terms and should be locale-appropriate."
+        }
+      ],
+      "false_positives": [
+        {
+          "candidate": "Lithuanian account messages file (messages_lt.properties) has totpStep1 value replaced with Italian text instead of Lithuanian"
+        },
+        {
+          "candidate": "In VerifyMessageProperties.verifySafeHtml error-reporting logic, independently computed prefix/suffix strip indices can overlap (start + end exceeds shorter string length), causing substring(start, length - end) to throw StringIndexOutOfBoundsException and crash the theme verifier plugin"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "The anchor sanitization logic has a potential issue where it consumes English matcher groups without proper validation. If the translated text has more anchor tags than the English text, this could lead to incorrect validation results.",
+          "severity": "Low"
+        },
+        {
+          "golden_comment": "The method name 'santizeAnchors' should be 'sanitizeAnchors' (missing 'i').",
+          "severity": "Low"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 4,
+      "total_golden": 4,
+      "tp": 2,
+      "fp": 2,
+      "fn": 2,
+      "errors_count": 0,
+      "precision": 0.5,
+      "recall": 0.5,
+      "tool": "devin",
+      "repo_name": "keycloak__keycloak__devin__PR37429__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/keycloak__keycloak__devin__PR37429__20260302/pull/1"
     }
   },
   "https://github.com/keycloak/keycloak/pull/37634": {
@@ -1179,6 +1228,52 @@
       "tool": "qodo-v2",
       "repo_name": "keycloak__keycloak__qodo-v2__PR37634__20260227",
       "pr_url": "https://github.com/code-review-benchmark/keycloak__keycloak__qodo-v2__PR37634__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "Wrong parameter in null check (grantType vs. rawTokenId)",
+          "severity": "Critical",
+          "matched_candidate": "AccessTokenContext constructor mistakenly calls Objects.requireNonNull(grantType, \"Null rawTokenId not allowed\") instead of validating rawTokenId, so rawTokenId can be null without being checked",
+          "confidence": 0.97,
+          "reasoning": "The candidate explicitly states that the constructor uses requireNonNull on grantType with an error message about rawTokenId, and that rawTokenId is not actually validated. This is the same underlying issue as the golden comment: wrong parameter used in the null check (grantType vs rawTokenId)."
+        },
+        {
+          "golden_comment": "In isAccessTokenId, the substring for the grant shortcut and the equality check look inverted: the grant shortcut occupies indices 4\u20135 (substring(4,6)), and a match should return true (combined with UUID check), not false.",
+          "severity": "High",
+          "matched_candidate": "AssertEvents.isAccessTokenId matcher has inverted equality logic, returning false when the extracted grant shortcut equals the expected value instead of when it differs",
+          "confidence": 0.86,
+          "reasoning": "The candidate flags that isAccessTokenId has inverted equality logic: it returns false when the extracted grant shortcut equals the expected value. This matches the golden issue\u2019s core bug (the equality check is inverted and should return true on match, alongside the UUID check). The candidate does not mention the substring indices, but it identifies the same underlying inversion problem in the matcher logic."
+        }
+      ],
+      "false_positives": [
+        {
+          "candidate": "ClientCredentialsGrantType.process() does not set Constants.GRANT_TYPE on clientSessionCtx (and bypasses OAuth2GrantTypeBase.createTokenResponse), causing client-credentials tokens to encode an 'unknown' grant type in the token ID"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "Javadoc mentions \"usually like 3-letters shortcut\" but some implementations use 2-letter shortcuts (\"ac\", \"cc\", \"rt\", \"te\", \"pc\", \"ci\", \"ro\"). Consider updating documentation to reflect actual usage pattern.",
+          "severity": "Low"
+        },
+        {
+          "golden_comment": " Catching generic RuntimeException is too broad. The implementation throws IllegalArgumentException specifically - catch that instead for more precise testing.",
+          "severity": "Low"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 4,
+      "total_golden": 4,
+      "tp": 2,
+      "fp": 1,
+      "fn": 2,
+      "errors_count": 0,
+      "precision": 0.5,
+      "recall": 0.5,
+      "tool": "devin",
+      "repo_name": "keycloak__keycloak__devin__PR37634__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/keycloak__keycloak__devin__PR37634__20260302/pull/1"
     }
   },
   "https://github.com/keycloak/keycloak/pull/38446": {
@@ -1653,6 +1748,33 @@
       "tool": "qodo-v2",
       "repo_name": "keycloak__keycloak__qodo-v2__PR38446__20260227",
       "pr_url": "https://github.com/code-review-benchmark/keycloak__keycloak__qodo-v2__PR38446__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [],
+      "false_positives": [],
+      "false_negatives": [
+        {
+          "golden_comment": "Unsafe raw List deserialization without type safety. Calling Optional.get() directly on the Optional returned by RecoveryAuthnCodesUtils.getCredential(user) without checking isPresent() can lead to a NoSuchElementException if the Optional is empty.",
+          "severity": "Medium"
+        },
+        {
+          "golden_comment": "After creating the RecoveryAuthnCodesCredentialModel, consider setting its id from the stored credential (e.g., myUser.recoveryCodes.getId()); otherwise getId() will be null and downstream removal by id (e.g., removeStoredCredentialById in the authenticator flow) may not work.",
+          "severity": "Low"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 0,
+      "total_golden": 2,
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "errors_count": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "tool": "devin",
+      "repo_name": "keycloak__keycloak__devin__PR38446__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/keycloak__keycloak__devin__PR38446__20260302/pull/1"
     }
   },
   "https://github.com/keycloak/keycloak/pull/36882": {
@@ -2017,6 +2139,29 @@
       "tool": "qodo-v2",
       "repo_name": "keycloak__keycloak__qodo-v2__PR36882__20260227",
       "pr_url": "https://github.com/code-review-benchmark/keycloak__keycloak__qodo-v2__PR36882__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [],
+      "false_positives": [],
+      "false_negatives": [
+        {
+          "golden_comment": "Incorrect method call for exit codes. The picocli.exit() method calls System.exit() directly, which is problematic:",
+          "severity": "Medium"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 0,
+      "total_golden": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "errors_count": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "tool": "devin",
+      "repo_name": "keycloak__keycloak__devin__PR36882__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/keycloak__keycloak__devin__PR36882__20260302/pull/1"
     }
   },
   "https://github.com/keycloak/keycloak/pull/36880": {
@@ -2575,6 +2720,41 @@
       "tool": "qodo-v2",
       "repo_name": "keycloak__keycloak__qodo-v2__PR36880__20260227",
       "pr_url": "https://github.com/code-review-benchmark/keycloak__keycloak__qodo-v2__PR36880__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [],
+      "false_positives": [
+        {
+          "candidate": "ClientPermissionsV2.hasPermission calls AdminPermissionsSchema.SCHEMA.getResourceTypeResource and then passes the result directly to PolicyStore.findByResource without a null check, causing a NullPointerException when getResourceTypeResource returns null (e.g., unsupported schema, missing resource type, or findByName returns null)."
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "Inconsistent feature flag bug causing orphaned permissions. The AdminPermissions event listener, responsible for cleaning up permissions upon role, client, or group removal, is incorrectly guarded by the ADMIN_FINE_GRAINED_AUTHZ (V1) feature flag. This is inconsistent with other methods in the class that use ADMIN_FINE_GRAINED_AUTHZ_V2. Consequently, if ADMIN_FINE_GRAINED_AUTHZ_V2 is enabled but V1 is not, the permission cleanup logic will not execute, leading to orphaned permission data. Cleanup should occur regardless of which fine-grained authorization version is enabled.",
+          "severity": "High"
+        },
+        {
+          "golden_comment": "In hasPermission(ClientModel client, String scope), the resource lookup uses findByName(server, client.getId(), server.getId()), but AdminPermissionsSchema.getOrCreateResource creates per-client resources with the owner set to resourceServer.getClientId(), so this lookup will never find those resources and will always fall back to the 'all-clients' resource, effectively ignoring client-specific permissions.",
+          "severity": "High"
+        },
+        {
+          "golden_comment": "In getClientsWithPermission(String scope), iterating resourceStore.findByType(server, AdminPermissionsSchema.CLIENTS_RESOURCE_TYPE) and returning resource.getName() will only ever consider the type-level 'Clients' resource (per-client resources have no type) and return its name, while AvailableRoleMappingResource#getRoleIdsWithPermissions expects actual client IDs to pass to realm.getClientById, which can lead to incorrect behavior or a null client and subsequent failures.",
+          "severity": "High"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 1,
+      "total_golden": 3,
+      "tp": 0,
+      "fp": 1,
+      "fn": 3,
+      "errors_count": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "tool": "devin",
+      "repo_name": "keycloak__keycloak__devin__PR36880__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/keycloak__keycloak__devin__PR36880__20260302/pull/1"
     }
   },
   "https://github.com/keycloak/keycloak/pull/37038": {
@@ -3024,6 +3204,41 @@
       "tool": "qodo-v2",
       "repo_name": "keycloak__keycloak__qodo-v2__PR37038__20260227",
       "pr_url": "https://github.com/code-review-benchmark/keycloak__keycloak__qodo-v2__PR37038__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "Incorrect permission check in canManage() method",
+          "severity": "High",
+          "matched_candidate": "GroupPermissionsV2.canManage() (no-arg) incorrectly checks VIEW and MANAGE scopes, granting manage access to users with only VIEW permission (privilege escalation)",
+          "confidence": 0.93,
+          "reasoning": "Both describe the same underlying bug: the canManage() permission check is incorrect and can grant manage access when only view permission is present (wrong scope/permission logic)."
+        }
+      ],
+      "false_positives": [
+        {
+          "candidate": "Because GroupPermissions.requireManage() relies on the flawed no-arg canManage(), users with only group VIEW permission can create top-level groups via GroupsResource.addTopLevelGroup(), bypassing intended authorization"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "In getGroupIdsWithViewPermission, hasPermission is called with groupResource.getId() and the same groupResource.getId() is added to granted, but hasPermission resolves resources by name (treating the argument as a group id) and the GroupPermissionEvaluator contract says this method returns group IDs that are later used as UserModel.GROUPS and in getUsersCount group filters. This mismatch means per-group VIEW_MEMBERS/MANAGE_MEMBERS permissions may not yield the expected group IDs for filtering and counts, and evaluation may effectively only look at the type-level 'all-groups' resource; consider revisiting whether this should operate on the underlying group ids (resource names) instead so it aligns with the JPA queries and the interface contract.",
+          "severity": "High"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 2,
+      "total_golden": 2,
+      "tp": 1,
+      "fp": 1,
+      "fn": 1,
+      "errors_count": 0,
+      "precision": 0.5,
+      "recall": 0.5,
+      "tool": "devin",
+      "repo_name": "keycloak__keycloak__devin__PR37038__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/keycloak__keycloak__devin__PR37038__20260302/pull/1"
     }
   },
   "https://github.com/keycloak/keycloak/pull/33832": {
@@ -3534,6 +3749,33 @@
       "tool": "qodo-v2",
       "repo_name": "keycloak__keycloak__qodo-v2__PR33832__20260227",
       "pr_url": "https://github.com/code-review-benchmark/keycloak__keycloak__qodo-v2__PR33832__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [],
+      "false_positives": [],
+      "false_negatives": [
+        {
+          "golden_comment": "Returns wrong provider (default keystore instead of BouncyCastle)",
+          "severity": "High"
+        },
+        {
+          "golden_comment": "Dead code exists where ASN1Encoder instances are created and written to, but their results are immediately discarded. The actual encoding is performed by new ASN1Encoder instances created in the subsequent return statement, rendering the earlier operations useless.",
+          "severity": "Low"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 0,
+      "total_golden": 2,
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "errors_count": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "tool": "devin",
+      "repo_name": "keycloak__keycloak__devin__PR33832__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/keycloak__keycloak__devin__PR33832__20260302/pull/1"
     }
   },
   "https://github.com/keycloak/keycloak/pull/40940": {
@@ -4014,6 +4256,37 @@
       "tool": "qodo-v2",
       "repo_name": "keycloak__keycloak__qodo-v2__PR40940__20260227",
       "pr_url": "https://github.com/code-review-benchmark/keycloak__keycloak__qodo-v2__PR40940__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "Returning null from getSubGroupsCount() violates the GroupModel contract (Javadoc says it never returns null) and may lead to NPEs in callers that expect a non-null count.",
+          "severity": "Critical",
+          "matched_candidate": "getSubGroupsCount() returns null when modelSupplier.get() is null, violating the GroupModel.getSubGroupsCount() contract that it never returns null and risking NullPointerException for callers that auto-unbox the result",
+          "confidence": 0.98,
+          "reasoning": "Both comments flag the same issue: getSubGroupsCount() can return null, which violates the GroupModel contract/Javadoc stating it must be non-null, and this can cause NPEs (including via auto-unboxing) in callers."
+        }
+      ],
+      "false_positives": [],
+      "false_negatives": [
+        {
+          "golden_comment": "The reader thread isn\u2019t waited for; flipping deletedAll to true and asserting immediately can race and miss exceptions added just after the flag change, making this test flaky.",
+          "severity": "Medium"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 1,
+      "total_golden": 2,
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "errors_count": 0,
+      "precision": 1.0,
+      "recall": 0.5,
+      "tool": "devin",
+      "repo_name": "keycloak__keycloak__devin__PR40940__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/keycloak__keycloak__devin__PR40940__20260302/pull/1"
     }
   },
   "https://github.com/ai-code-review-evaluation/keycloak-greptile/pull/1": {
@@ -4470,6 +4743,33 @@
       "tool": "qodo-v2",
       "repo_name": "keycloak__keycloak-greptile__qodo-v2__PR1__20260227",
       "pr_url": "https://github.com/code-review-benchmark/keycloak__keycloak-greptile__qodo-v2__PR1__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [],
+      "false_positives": [],
+      "false_negatives": [
+        {
+          "golden_comment": "ConditionalPasskeysEnabled() called without UserModel parameter",
+          "severity": "Medium"
+        },
+        {
+          "golden_comment": "With isConditionalPasskeysEnabled(UserModel user) requiring user != null, authenticate(...) will not call webauthnAuth.fillContextForm(context) on the initial login page where context.getUser() is still null, so conditional passkey UI will not be set up for first-time passkey login. Consider whether this should also be enabled when no user has been selected yet so ID-less passkey authentication on the initial login form continues to work.",
+          "severity": "Medium"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 0,
+      "total_golden": 2,
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "errors_count": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "tool": "devin",
+      "repo_name": "keycloak__keycloak-greptile__devin__PR1__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/keycloak__keycloak-greptile__devin__PR1__20260302/pull/1"
     }
   },
   "https://github.com/getsentry/sentry/pull/93824": {
@@ -5120,6 +5420,49 @@
       "tool": "qodo-v2",
       "repo_name": "sentry__sentry__qodo-v2__PR93824__20260227",
       "pr_url": "https://github.com/code-review-benchmark/sentry__sentry__qodo-v2__PR93824__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "Because flusher processes are created via multiprocessing.get_context('spawn').Process, they are instances of multiprocessing.context.SpawnProcess, which on POSIX is not a subclass of multiprocessing.Process, so this isinstance check will always be false and hung processes won't be killed here.",
+          "severity": "High",
+          "matched_candidate": "In join(), guarding process.terminate() with isinstance(process, multiprocessing.Process) fails for spawn-context SpawnProcess, so still-running processes are never terminated, potentially hanging shutdown or leaving orphan processes",
+          "confidence": 0.94,
+          "reasoning": "Both describe the same bug: flusher processes are created with the spawn context (SpawnProcess), and an isinstance check against multiprocessing.Process fails, so terminate() is never called and hung processes may persist."
+        }
+      ],
+      "false_positives": [],
+      "false_negatives": [
+        {
+          "golden_comment": "Inconsistent metric tagging with 'shard' and 'shards'",
+          "severity": "Medium"
+        },
+        {
+          "golden_comment": "Fixed sleep in tests can be flaky; wait on condition instead",
+          "severity": "Low"
+        },
+        {
+          "golden_comment": "Sleep in test_consumer.py won\u2019t actually wait because time.sleep was monkeypatched above; consider restoring sleep or using a different sync to ensure the flusher has time to process.",
+          "severity": "Medium"
+        },
+        {
+          "golden_comment": "Breaking out of the loop when the deadline has elapsed can skip terminating remaining flusher processes, potentially leaving them running after shutdown; consider ensuring termination is attempted even if the deadline is exceeded.",
+          "severity": "Medium"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 2,
+      "total_golden": 5,
+      "tp": 1,
+      "fp": 0,
+      "fn": 4,
+      "errors_count": 0,
+      "precision": 0.5,
+      "recall": 0.2,
+      "tool": "devin",
+      "repo_name": "sentry__sentry__devin__PR93824__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/sentry__sentry__devin__PR93824__20260302/pull/1"
     }
   },
   "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/5": {
@@ -5663,6 +6006,51 @@
       "tool": "qodo-v2",
       "repo_name": "sentry__sentry-greptile__qodo-v2__PR5__20260227",
       "pr_url": "https://github.com/code-review-benchmark/sentry__sentry-greptile__qodo-v2__PR5__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "Using zip(error_ids, events.values()) assumes the get_multi result preserves the input order; dict value order is not guaranteed to match error_ids, so event data can be paired with the wrong ID (missing nodes also shift alignment).",
+          "severity": "Low",
+          "matched_candidate": "In fetch_error_details, zipping error_ids with events.values() from nodestore.get_multi pairs IDs with unordered dict values, causing mismatched error data when cache/service merge changes iteration order",
+          "confidence": 0.93,
+          "reasoning": "The candidate flags that zipping error_ids with events.values() from get_multi relies on dict value iteration order, which can be unordered or differ from the input IDs, leading to mismatched ID->event pairing. This is the same core issue as the golden comment (order/alignment assumptions causing wrong pairing, especially when results are missing)."
+        }
+      ],
+      "false_positives": [
+        {
+          "candidate": "In fetch_error_details, missing nodestore entries cause zip(error_ids, events.values()) to truncate and misalign remaining events to the wrong error_ids, corrupting replay summary error details"
+        },
+        {
+          "candidate": "HIDDEN_ATTRIBUTES are only filtered out when a search query is present; when searchQuery is empty the early return skips filtering and shows hidden/internal attributes"
+        },
+        {
+          "candidate": "analytics.record is called before the feature flag check in ProjectPreprodArtifactAssembleEndpoint.post, recording analytics events even when the feature is disabled and the request returns 404"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "Breaking changes in error response format",
+          "severity": "Medium"
+        },
+        {
+          "golden_comment": "Detector validator uses wrong key when updating type",
+          "severity": "Medium"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 4,
+      "total_golden": 3,
+      "tp": 1,
+      "fp": 3,
+      "fn": 2,
+      "errors_count": 0,
+      "precision": 0.25,
+      "recall": 0.3333333333333333,
+      "tool": "devin",
+      "repo_name": "sentry__sentry-greptile__devin__PR5__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/sentry__sentry-greptile__devin__PR5__20260302/pull/1"
     }
   },
   "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/1": {
@@ -6337,6 +6725,58 @@
       "tool": "qodo-v2",
       "repo_name": "sentry__sentry-greptile__qodo-v2__PR1__20260227",
       "pr_url": "https://github.com/code-review-benchmark/sentry__sentry-greptile__qodo-v2__PR1__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "Django querysets do not support negative slicing",
+          "severity": "High",
+          "matched_candidate": "OptimizedCursorPaginator.get_result can pass a negative start_offset into Django QuerySet slicing when enable_advanced_features is enabled and cursor.offset < 0, triggering AssertionError because Django disallows negative indexing",
+          "confidence": 0.94,
+          "reasoning": "The golden issue is that Django QuerySets do not allow negative slicing/indexing. The candidate explicitly describes a scenario where a negative start_offset is used in QuerySet slicing, causing an AssertionError due to Django disallowing negative indexing. This is the same underlying problem."
+        },
+        {
+          "golden_comment": "When requests are authenticated with API keys or org auth tokens (which have user_id=None), organization_context.member is None. Line 71 attempts to access organization_context.member.has_global_access without checking if member is None, causing an AttributeError crash when optimized_pagination=true is used, even though the request passed all permission checks with valid org:write scope.",
+          "severity": "High",
+          "matched_candidate": "organization_auditlogs endpoint accesses organization_context.member.has_global_access without guarding member being None, risking AttributeError if member is missing",
+          "confidence": 0.9,
+          "reasoning": "The candidate flags the same core bug: the endpoint dereferences organization_context.member.has_global_access without checking if member is None, which can raise an AttributeError when member is missing (e.g., API key/org token auth). It doesn\u2019t mention optimized_pagination or the permission-scope context, but the underlying issue matches."
+        },
+        {
+          "golden_comment": "get_item_key assumes a numeric key, but the paginator is used with order_by=-datetime in the audit logs endpoint; calling math.floor/ceil on a datetime will raise a TypeError.",
+          "severity": "High",
+          "matched_candidate": "OptimizedCursorPaginator.get_item_key incorrectly applies math.floor/ceil to a datetime value (copied from numeric Paginator), causing a TypeError when paginating audit logs ordered by -datetime",
+          "confidence": 0.97,
+          "reasoning": "The candidate describes the same root problem: get_item_key in OptimizedCursorPaginator uses math.floor/ceil assuming a numeric key, but audit logs pagination orders by a datetime, so applying floor/ceil to a datetime raises a TypeError."
+        }
+      ],
+      "false_positives": [
+        {
+          "candidate": "OptimizedCursorPaginator.value_from_cursor returns the raw integer cursor value instead of converting it back to a timezone-aware datetime for queryset filtering, breaking datetime-based pagination"
+        },
+        {
+          "candidate": "BasePaginator.get_result allows negative offsets to pass through for is_prev cursors (start_offset = offset), which can cause Django QuerySet slicing to raise AssertionError on negative indexing"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "Importing non-existent OptimizedCursorPaginator",
+          "severity": "Low"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 5,
+      "total_golden": 4,
+      "tp": 3,
+      "fp": 2,
+      "fn": 1,
+      "errors_count": 0,
+      "precision": 0.6,
+      "recall": 0.75,
+      "tool": "devin",
+      "repo_name": "sentry__sentry-greptile__devin__PR1__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/sentry__sentry-greptile__devin__PR1__20260302/pull/1"
     }
   },
   "https://github.com/grafana/grafana/pull/97529": {
@@ -6828,6 +7268,40 @@
       "tool": "qodo-v2",
       "repo_name": "grafana__grafana__qodo-v2__PR97529__20260227",
       "pr_url": "https://github.com/code-review-benchmark/grafana__grafana__qodo-v2__PR97529__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [],
+      "false_positives": [
+        {
+          "candidate": "History() calls s.search.History(...) without checking if s.search is nil, which can cause a nil pointer panic when search is not configured/feature flag disabled"
+        },
+        {
+          "candidate": "Origin() calls s.search.Origin(...) without checking if s.search is nil, which can cause a nil pointer panic when search is not configured/feature flag disabled"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "A race condition in BuildIndex allows multiple goroutines to concurrently build the same expensive index for the same key. This is caused by moving the b.cacheMu lock from protecting the entire function to only protecting the final cache assignment. ",
+          "severity": "High"
+        },
+        {
+          "golden_comment": "Calling s.search.TotalDocs() here may race with concurrent index creation: TotalDocs iterates b.cache without synchronization, and the event watcher goroutine started just above could trigger BuildIndex writes concurrently, potentially causing a concurrent map read/write panic.",
+          "severity": "High"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 2,
+      "total_golden": 2,
+      "tp": 0,
+      "fp": 2,
+      "fn": 2,
+      "errors_count": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "tool": "devin",
+      "repo_name": "grafana__grafana__devin__PR97529__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/grafana__grafana__devin__PR97529__20260302/pull/1"
     }
   },
   "https://github.com/getsentry/sentry/pull/80168": {
@@ -7283,6 +7757,44 @@
       "tool": "qodo-v2",
       "repo_name": "sentry__sentry__qodo-v2__PR80168__20260227",
       "pr_url": "https://github.com/code-review-benchmark/sentry__sentry__qodo-v2__PR80168__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "MetricAlertDetectorHandler inherits from StatefulDetectorHandler but only contains pass, failing to implement its required abstract methods: counter_names (property), get_dedupe_value(), get_group_key_values(), and build_occurrence_and_event_data(). This will cause a TypeError at runtime when the class is instantiated.",
+          "severity": "High",
+          "matched_candidate": "MetricAlertDetectorHandler extends StatefulDetectorHandler but does not implement required abstract methods (counter_names, get_dedupe_value, get_group_key_values, build_occurrence_and_event_data), making it abstract",
+          "confidence": 0.96,
+          "reasoning": "The candidate states that MetricAlertDetectorHandler extends StatefulDetectorHandler but fails to implement the required abstract methods (listing the same ones), leaving it abstract. This is the same underlying issue as the golden comment (missing abstract method implementations leading to instantiation/runtime error)."
+        }
+      ],
+      "false_positives": [
+        {
+          "candidate": "Runtime crash when accessing Detector.detector_handler for type \"metric_alert_fire\" because it tries to instantiate the abstract MetricAlertDetectorHandler, raising a TypeError"
+        },
+        {
+          "candidate": "TestEvaluateGroupKeyValue.test_dedupe builds the expected occurrence using group_key \"val1\" but evaluates using group_key \"group_key\", causing mismatched fingerprints and an incorrect assertion (may mask bugs or fail)"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "Docstring says this returns a list of DetectorEvaluationResult, but the method now returns a dict keyed by DetectorGroupKey. Consider updating the docstring to match the new return type.",
+          "severity": "Low"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 3,
+      "total_golden": 2,
+      "tp": 1,
+      "fp": 2,
+      "fn": 1,
+      "errors_count": 0,
+      "precision": 0.3333333333333333,
+      "recall": 0.5,
+      "tool": "devin",
+      "repo_name": "sentry__sentry__devin__PR80168__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/sentry__sentry__devin__PR80168__20260302/pull/1"
     }
   },
   "https://github.com/getsentry/sentry/pull/80528": {
@@ -7731,6 +8243,37 @@
       "tool": "qodo-v2",
       "repo_name": "sentry__sentry__qodo-v2__PR80528__20260227",
       "pr_url": "https://github.com/code-review-benchmark/sentry__sentry__qodo-v2__PR80528__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "The function modifies the config variable to include display values but then returns the original monitor.config instead of the modified version.",
+          "severity": "High",
+          "matched_candidate": "get_monitor_environment_context returns monitor_environment.monitor.config (original) instead of the locally modified config copy, so the schedule_type human-readable transformation is not included in the returned context",
+          "confidence": 0.96,
+          "reasoning": "Both describe the same bug: the function updates a local/config copy to add human-readable display values (e.g., schedule_type) but returns the original monitor.config, so the modifications are not reflected in the returned result."
+        }
+      ],
+      "false_positives": [],
+      "false_negatives": [
+        {
+          "golden_comment": "The code fetches MonitorCheckIn objects by ID when the required data already exists in previous_checkins. This creates an unnecessary database query.",
+          "severity": "Low"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 1,
+      "total_golden": 2,
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "errors_count": 0,
+      "precision": 1.0,
+      "recall": 0.5,
+      "tool": "devin",
+      "repo_name": "sentry__sentry__devin__PR80528__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/sentry__sentry__devin__PR80528__20260302/pull/1"
     }
   },
   "https://github.com/getsentry/sentry/pull/77754": {
@@ -8287,6 +8830,45 @@
       "tool": "qodo-v2",
       "repo_name": "sentry__sentry__qodo-v2__PR77754__20260227",
       "pr_url": "https://github.com/code-review-benchmark/sentry__sentry__qodo-v2__PR77754__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "Shared mutable default in dataclass timestamp",
+          "severity": "Medium",
+          "matched_candidate": "AssignmentSource dataclass sets queued default as timezone.now() evaluated at class definition/import time, causing all instances without an explicit queued value to share the same timestamp instead of getting the creation time (should use field(default_factory=timezone.now)).",
+          "confidence": 0.95,
+          "reasoning": "The golden issue is about a shared mutable/default timestamp in a dataclass due to evaluating a default at definition time. The candidate explicitly describes using timezone.now() as a default evaluated at import time, causing all instances to share the same timestamp, and recommends default_factory=timezone.now. This is the same underlying problem."
+        }
+      ],
+      "false_positives": [],
+      "false_negatives": [
+        {
+          "golden_comment": "The method name has a typo: test_from_dict_inalid_data should be test_from_dict_invalid_data.",
+          "severity": "Low"
+        },
+        {
+          "golden_comment": "Method name says 'empty_array' but tests empty dict - consider renaming to 'test_from_dict_empty_dict' for clarity.",
+          "severity": "Low"
+        },
+        {
+          "golden_comment": "to_dict() returns a datetime for queued; if this dict is passed in task kwargs (e.g., via apply_async), JSON serialization may fail depending on the serializer, which can cause enqueue errors.",
+          "severity": "Medium"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 1,
+      "total_golden": 4,
+      "tp": 1,
+      "fp": 0,
+      "fn": 3,
+      "errors_count": 0,
+      "precision": 1.0,
+      "recall": 0.25,
+      "tool": "devin",
+      "repo_name": "sentry__sentry__devin__PR77754__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/sentry__sentry__devin__PR77754__20260302/pull/1"
     }
   },
   "https://github.com/getsentry/sentry/pull/95633": {
@@ -8822,6 +9404,50 @@
       "tool": "qodo-v2",
       "repo_name": "sentry__sentry__qodo-v2__PR95633__20260227",
       "pr_url": "https://github.com/code-review-benchmark/sentry__sentry__qodo-v2__PR95633__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [],
+      "false_positives": [
+        {
+          "candidate": "FixedQueuePool.shutdown() sets worker.shutdown = True before calling q.shutdown(immediate=False), allowing workers to exit their loop early and leave queued items unprocessed (message loss during graceful shutdown/rebalance)"
+        },
+        {
+          "candidate": "Because workers can exit before draining, offsets may be added via add_offset but never completed via complete_offset, so offsets are never committed and work is silently dropped"
+        },
+        {
+          "candidate": "SimpleQueueProcessingStrategy.close() calls self.queue_pool.shutdown() even though the FixedQueuePool is a shared resource owned by ResultsStrategyFactory, leaving the factory with a permanently shut-down pool after a rebalance"
+        },
+        {
+          "candidate": "After a rebalance, a new strategy can be created with the already-shut-down queue_pool, causing subsequent submit()/queue.put() calls to fail with queue.ShutDown and the consumer to stop processing until restart"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "The queue.shutdown() method with 'immediate=False' parameter may not exist in the standard Python queue module. This could cause AttributeError at runtime. Verify the correct API or implement a custom shutdown mechanism.",
+          "severity": "High"
+        },
+        {
+          "golden_comment": "The magic number 50 for max_wait is used repeatedly throughout the tests. Consider extracting this as a named constant to improve maintainability.",
+          "severity": "Low"
+        },
+        {
+          "golden_comment": "The test test_thread_queue_parallel_error_handling has a docstring that doesn't match the test implementation.",
+          "severity": "Low"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 4,
+      "total_golden": 3,
+      "tp": 0,
+      "fp": 4,
+      "fn": 3,
+      "errors_count": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "tool": "devin",
+      "repo_name": "sentry__sentry__devin__PR95633__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/sentry__sentry__devin__PR95633__20260302/pull/1"
     }
   },
   "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/2": {
@@ -9444,6 +10070,37 @@
       "tool": "qodo-v2",
       "repo_name": "sentry__sentry-greptile__qodo-v2__PR2__20260227",
       "pr_url": "https://github.com/code-review-benchmark/sentry__sentry-greptile__qodo-v2__PR2__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [],
+      "false_positives": [],
+      "false_negatives": [
+        {
+          "golden_comment": "OptimizedCursorPaginator negative-offset branch slices QuerySet with a negative start index",
+          "severity": "Critical"
+        },
+        {
+          "golden_comment": "BasePaginator negative-offset branch slices QuerySet with a negative start index",
+          "severity": "High"
+        },
+        {
+          "golden_comment": "OptimizedCursorPaginator.get_item_key uses floor/ceil on a datetime key (order_by='-datetime'), causing TypeError.",
+          "severity": "High"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 0,
+      "total_golden": 3,
+      "tp": 0,
+      "fp": 0,
+      "fn": 3,
+      "errors_count": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "tool": "devin",
+      "repo_name": "sentry__sentry-greptile__devin__PR2__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/sentry__sentry-greptile__devin__PR2__20260302/pull/1"
     }
   },
   "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/3": {
@@ -9999,6 +10656,44 @@
       "tool": "qodo-v2",
       "repo_name": "sentry__sentry-greptile__qodo-v2__PR3__20260227",
       "pr_url": "https://github.com/code-review-benchmark/sentry__sentry-greptile__qodo-v2__PR3__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "Using Python\u2019s built-in hash() to build cache keys is non-deterministic across processes (hash randomization), so keys won\u2019t match across workers and invalidate_upsampling_cache may fail to delete them. Use a deterministic serialization of project_ids for the cache key.",
+          "severity": "Low",
+          "matched_candidate": "In error_upsampling.py, the cache key uses Python's non-deterministic `hash()` on project IDs, causing cache misses across processes and preventing proper cross-worker cache invalidation",
+          "confidence": 0.94,
+          "reasoning": "The candidate flags the same core problem: using Python\u2019s built-in hash() for cache keys is non-deterministic across processes, leading to cache misses and failed cross-worker invalidation. This aligns with the golden comment\u2019s concern and implied fix (deterministic keying)."
+        },
+        {
+          "golden_comment": "The upsampling eligibility check passes the outer dataset instead of the actual dataset used by scoped_dataset. In paths where the query ultimately runs against discover (e.g., dashboard split) while the original dataset is metrics, upsampling may be skipped even when all projects are allowlisted.",
+          "severity": "Medium",
+          "matched_candidate": "In organization_events_stats._get_event_stats, the upsampling eligibility check uses the outer closure variable `dataset` instead of the function parameter `scoped_dataset`, leading to incorrect upsampling decisions when called with a different dataset",
+          "confidence": 0.9,
+          "reasoning": "Both describe the same bug: the upsampling eligibility check is using the wrong dataset variable (the outer `dataset`) instead of the actual dataset being queried (`scoped_dataset`), which can cause incorrect upsampling decisions when the effective dataset differs (e.g., discover vs metrics)."
+        }
+      ],
+      "false_positives": [],
+      "false_negatives": [
+        {
+          "golden_comment": "sample_rate = 0.0 is falsy and skipped",
+          "severity": "Low"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 2,
+      "total_golden": 3,
+      "tp": 2,
+      "fp": 0,
+      "fn": 1,
+      "errors_count": 0,
+      "precision": 1.0,
+      "recall": 0.6666666666666666,
+      "tool": "devin",
+      "repo_name": "sentry__sentry-greptile__devin__PR3__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/sentry__sentry-greptile__devin__PR3__20260302/pull/1"
     }
   },
   "https://github.com/grafana/grafana/pull/103633": {
@@ -10461,6 +11156,43 @@
       "tool": "qodo-v2",
       "repo_name": "grafana__grafana__qodo-v2__PR103633__20260227",
       "pr_url": "https://github.com/code-review-benchmark/grafana__grafana__qodo-v2__PR103633__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [],
+      "false_positives": [
+        {
+          "candidate": "Denial cache is checked first in Check() and short-circuits permission cache/DB refresh, so stale denial entries can incorrectly override newly-granted permissions"
+        },
+        {
+          "candidate": "Denial cache entries are never invalidated when getIdentityPermissions refreshes the permission cache, allowing previously cached denials to persist for up to the TTL after permissions change"
+        },
+        {
+          "candidate": "Denial cache key format can collide with permission cache key format because both share the same underlying cache and use '_' separators while components may contain underscores, leading to ambiguous keys and potential cross-type reads/JSON unmarshal failures"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "The Check operation exhibits asymmetric cache trust logic: cached permission grants are trusted and returned immediately, but cached denials from the same permission cache are ignored, leading to a fresh database lookup. This allows stale cached grants to provide access to revoked resources, posing a security risk. ",
+          "severity": "High"
+        },
+        {
+          "golden_comment": "The test comment says the cached permissions 'allow access', but the map stores false for dashboards:uid:dash1, so checkPermission will still treat this scope as not allowed.",
+          "severity": "Low"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 3,
+      "total_golden": 2,
+      "tp": 0,
+      "fp": 3,
+      "fn": 2,
+      "errors_count": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "tool": "devin",
+      "repo_name": "grafana__grafana__devin__PR103633__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/grafana__grafana__devin__PR103633__20260302/pull/1"
     }
   },
   "https://github.com/getsentry/sentry/pull/67876": {
@@ -11020,6 +11752,45 @@
       "tool": "qodo-v2",
       "repo_name": "sentry__sentry__qodo-v2__PR67876__20260227",
       "pr_url": "https://github.com/code-review-benchmark/sentry__sentry__qodo-v2__PR67876__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "The code attempts to access integration.metadata[sender][login] without checking for the existence of the sender key. This causes a KeyError for integrations where the sender metadata was not set during creation",
+          "severity": "High",
+          "matched_candidate": "Accessing integration.metadata[\"sender\"][\"login\"] can raise a KeyError when the \"sender\" key is missing from integration metadata, resulting in a 500 error and blocking GitHub re-installation flows (e.g., after install+uninstall or for pre-existing integrations).",
+          "confidence": 0.93,
+          "reasoning": "Both describe the same root issue: the code indexes into integration.metadata for sender/login without verifying the sender key exists, which can raise a KeyError when sender metadata wasn\u2019t set. The candidate adds context about resulting 500s and reinstall flows but matches the golden bug."
+        }
+      ],
+      "false_positives": [
+        {
+          "candidate": "ensure_integration/integration.update(**defaults) overwrites the entire metadata dict during pipeline completion, which can remove a previously set \"sender\" field and later cause failures when code assumes it exists."
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "Null reference if github_authenticated_user state is missing",
+          "severity": "Medium"
+        },
+        {
+          "golden_comment": "OAuth state uses pipeline.signature (static) instead of a per-request random value",
+          "severity": "Medium"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 2,
+      "total_golden": 3,
+      "tp": 1,
+      "fp": 1,
+      "fn": 2,
+      "errors_count": 0,
+      "precision": 0.5,
+      "recall": 0.3333333333333333,
+      "tool": "devin",
+      "repo_name": "sentry__sentry__devin__PR67876__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/sentry__sentry__devin__PR67876__20260302/pull/1"
     }
   },
   "https://github.com/keycloak/keycloak/pull/32918": {
@@ -11472,6 +12243,33 @@
       "tool": "qodo-v2",
       "repo_name": "keycloak__keycloak__qodo-v2__PR32918__20260227",
       "pr_url": "https://github.com/code-review-benchmark/keycloak__keycloak__qodo-v2__PR32918__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [],
+      "false_positives": [],
+      "false_negatives": [
+        {
+          "golden_comment": "Recursive caching call using session instead of delegate",
+          "severity": "Critical"
+        },
+        {
+          "golden_comment": "Cleanup reference uses incorrect alias - should be 'idp-alias-' + i instead of 'alias'.",
+          "severity": "Medium"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 0,
+      "total_golden": 2,
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "errors_count": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "tool": "devin",
+      "repo_name": "keycloak__keycloak__devin__PR32918__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/keycloak__keycloak__devin__PR32918__20260302/pull/1"
     }
   },
   "https://github.com/grafana/grafana/pull/94942": {
@@ -11966,6 +12764,41 @@
       "tool": "qodo-v2",
       "repo_name": "grafana__grafana__qodo-v2__PR94942__20260227",
       "pr_url": "https://github.com/code-review-benchmark/grafana__grafana__qodo-v2__PR94942__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "The enableSqlExpressions function has flawed logic that always returns false, effectively disabling SQL expressions unconditionally:",
+          "severity": "Critical",
+          "matched_candidate": "enableSqlExpressions returns false in both branches / has no code path that returns true, so SQL expressions can never be enabled",
+          "confidence": 0.98,
+          "reasoning": "The candidate states that enableSqlExpressions returns false in all branches with no path to return true, meaning SQL expressions can never be enabled. This is the same underlying logic flaw described in the golden comment (always returns false, disabling SQL expressions unconditionally)."
+        }
+      ],
+      "false_positives": [
+        {
+          "candidate": "Because enableSqlExpressions always returns false, the caller rejects all SQL expression queries with \"sqlExpressions is not implemented\" even when the sqlExpressions feature flag is enabled"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "Several methods such as NewInMemoryDB().RunCommands and db.QueryFramesInto return 'not implemented'.",
+          "severity": "High"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 3,
+      "total_golden": 2,
+      "tp": 1,
+      "fp": 1,
+      "fn": 1,
+      "errors_count": 0,
+      "precision": 0.3333333333333333,
+      "recall": 0.5,
+      "tool": "devin",
+      "repo_name": "grafana__grafana__devin__PR94942__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/grafana__grafana__devin__PR94942__20260302/pull/1"
     }
   },
   "https://github.com/grafana/grafana/pull/90939": {
@@ -12397,6 +13230,37 @@
       "tool": "qodo-v2",
       "repo_name": "grafana__grafana__qodo-v2__PR90939__20260227",
       "pr_url": "https://github.com/code-review-benchmark/grafana__grafana__qodo-v2__PR90939__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "The GetWebAssets function implements an incomplete double-checked locking pattern for caching web assets. The function first checks if the cache is populated using a read lock (RLock), and if the cache is empty, it acquires a write lock to populate it. However, it fails to re-check whether the cache was populated by another goroutine while waiting to acquire the write lock.",
+          "severity": "Medium",
+          "matched_candidate": "After acquiring the write lock in the double-checked locking pattern, the code does not re-check entryPointAssetsCache, causing concurrent goroutines to redundantly re-read the manifest from disk and overwrite the cache.",
+          "confidence": 0.95,
+          "reasoning": "The candidate describes the same incomplete double-checked locking bug: after taking the write lock, the code fails to re-check whether the cache was already populated by another goroutine, leading to redundant work and potential overwrites."
+        }
+      ],
+      "false_positives": [],
+      "false_negatives": [
+        {
+          "golden_comment": "In addition to the missing double-check, the function has a critical flaw in its error handling: it unconditionally assigns the fetch result to the cache (line 69: entryPointAssetsCache = result) regardless of whether the fetch succeeded or failed. When an error occurs during asset fetching, result is nil, and this nil value overwrites any previously valid cache entry.",
+          "severity": "High"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 1,
+      "total_golden": 2,
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "errors_count": 0,
+      "precision": 1.0,
+      "recall": 0.5,
+      "tool": "devin",
+      "repo_name": "grafana__grafana__devin__PR90939__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/grafana__grafana__devin__PR90939__20260302/pull/1"
     }
   },
   "https://github.com/grafana/grafana/pull/80329": {
@@ -12856,6 +13720,45 @@
       "tool": "qodo-v2",
       "repo_name": "grafana__grafana__qodo-v2__PR80329__20260227",
       "pr_url": "https://github.com/code-review-benchmark/grafana__grafana__qodo-v2__PR80329__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "The code uses Error log level for what appears to be debugging information. This will pollute error logs in production. Consider using Debug or Info level instead.",
+          "severity": "Low",
+          "matched_candidate": "In CleanAnnotations and CleanOrphanedAnnotationTags (xorm_store.go lines 534, 537, 554, 557, 576, 579), routine cleanup progress messages are logged with r.log.Error instead of a lower level (e.g., Debug), causing non-error spam in error logs",
+          "confidence": 0.94,
+          "reasoning": "Both the golden comment and the candidate issue point out that non-error/debugging or routine progress messages are being logged at Error level, which will spam/pollute production error logs, and suggest using a lower log level like Debug/Info instead."
+        }
+      ],
+      "false_positives": [
+        {
+          "candidate": "The cleanup loop (untilDoneOrCancelled) logs these messages on every batch iteration, which can flood production error logs and potentially trigger error-volume alerts"
+        },
+        {
+          "candidate": "Cleanup logging includes dumping full annotation/tag ID lists (e.g., \"ids\", ids), which can create very large log entries for big batches"
+        },
+        {
+          "candidate": "In cleanup.go line 77, the cleanup service ticker interval was reduced from 10 minutes to 1 minute, making all cleanup jobs run 10x more frequently than intended"
+        },
+        {
+          "candidate": "With a 1-minute ticker but a 9-minute clean() timeout, long-running cleanups can cause ticks to buffer and then run back-to-back, increasing load"
+        }
+      ],
+      "false_negatives": [],
+      "errors": [],
+      "total_candidates": 5,
+      "total_golden": 1,
+      "tp": 1,
+      "fp": 4,
+      "fn": 0,
+      "errors_count": 0,
+      "precision": 0.2,
+      "recall": 1.0,
+      "tool": "devin",
+      "repo_name": "grafana__grafana__devin__PR80329__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/grafana__grafana__devin__PR80329__20260302/pull/1"
     }
   },
   "https://github.com/grafana/grafana/pull/90045": {
@@ -13496,6 +14399,53 @@
       "tool": "qodo-v2",
       "repo_name": "grafana__grafana__qodo-v2__PR90045__20260227",
       "pr_url": "https://github.com/code-review-benchmark/grafana__grafana__qodo-v2__PR90045__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "The context is being created with d.Log instead of the log variable that was initialized with additional context values (name, kind, method). This means those values won't be propagated to the logging context.",
+          "severity": "Medium",
+          "matched_candidate": "Delete: klog.NewContext uses d.Log instead of the enriched log (with name/kind/method), so downstream logging from ctx lacks those fields",
+          "confidence": 0.96,
+          "reasoning": "The candidate states that klog.NewContext is using d.Log instead of the enriched log containing name/kind/method, causing downstream ctx logging to miss those fields. This is the same underlying issue as the golden comment about lost context values due to using d.Log rather than the initialized log variable."
+        },
+        {
+          "golden_comment": "Bug: calling recordLegacyDuration when storage operation fails should be recordStorageDuration.",
+          "severity": "High",
+          "matched_candidate": "Create: when d.Storage.Create fails, the error path records duration with d.recordLegacyDuration instead of d.recordStorageDuration, misattributing storage failure latency to legacy metrics",
+          "confidence": 0.98,
+          "reasoning": "The candidate issue explicitly states that on d.Storage.Create failure, the code records duration using recordLegacyDuration instead of recordStorageDuration, which is exactly the bug described in the golden comment (wrong metric function called on storage failure)."
+        },
+        {
+          "golden_comment": "Inconsistency: using name instead of options.Kind for metrics recording differs from other methods.",
+          "severity": "Medium",
+          "matched_candidate": "Delete: success path passes the object name as the 'kind' label to recordStorageDuration instead of options.Kind, causing high-cardinality metric labels",
+          "confidence": 0.93,
+          "reasoning": "Both comments flag that in Delete's success path the metric label for 'kind' is incorrectly set to the object's name rather than options.Kind, which is inconsistent with other methods and leads to problematic labeling (including high cardinality)."
+        }
+      ],
+      "false_positives": [
+        {
+          "candidate": "Update: when d.Storage.Update fails, the error path records duration with d.recordLegacyDuration instead of d.recordStorageDuration, misattributing storage failure latency to legacy metrics"
+        },
+        {
+          "candidate": "DeleteCollection: the goroutine performing d.Legacy.DeleteCollection records duration with d.recordStorageDuration instead of d.recordLegacyDuration, misattributing legacy latency to storage metrics"
+        }
+      ],
+      "false_negatives": [],
+      "errors": [],
+      "total_candidates": 5,
+      "total_golden": 3,
+      "tp": 3,
+      "fp": 2,
+      "fn": 0,
+      "errors_count": 0,
+      "precision": 0.6,
+      "recall": 1.0,
+      "tool": "devin",
+      "repo_name": "grafana__grafana__devin__PR90045__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/grafana__grafana__devin__PR90045__20260302/pull/1"
     }
   },
   "https://github.com/grafana/grafana/pull/106778": {
@@ -13990,6 +14940,43 @@
       "tool": "qodo-v2",
       "repo_name": "grafana__grafana__qodo-v2__PR106778__20260227",
       "pr_url": "https://github.com/code-review-benchmark/grafana__grafana__qodo-v2__PR106778__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "The rendered GrafanaRuleListItem is missing the required key prop for React list items. This can cause rendering issues when the list order changes.",
+          "severity": "Medium",
+          "matched_candidate": "FilterView.tsx renders GrafanaRuleListItem inside a .map() without passing a key prop, causing React key warnings and potential incorrect reconciliation/stale UI state",
+          "confidence": 0.96,
+          "reasoning": "Both the golden comment and the candidate issue describe the same React problem: GrafanaRuleListItem is rendered in a list via .map() without a required key prop, leading to React key warnings and potential reconciliation/rendering issues when list order changes."
+        },
+        {
+          "golden_comment": "RuleActionsButtons is invoked with only promRule, but SilenceGrafanaRuleDrawer inside RuleActionsButtons still depends on a Grafana Ruler rule being present, so for Grafana rules coming from list views the 'Silence notifications' menu entry (now driven by Grafana Prom abilities) will toggle showSilenceDrawer without ever rendering the drawer. This means clicking 'Silence notifications' for these rules has no visible effect, even when abilities indicate silencing is allowed.",
+          "severity": "High",
+          "matched_candidate": "SilenceGrafanaRuleDrawer never renders when RuleActionsButtons receives only promRule (no rulerRule) because it is guarded by rulerRuleType.grafana.alertingRule(rule) and rule is undefined, so clicking \u201cSilence notifications\u201d does nothing in the new list view",
+          "confidence": 0.93,
+          "reasoning": "Both describe the same bug: RuleActionsButtons is called with only promRule, but SilenceGrafanaRuleDrawer rendering is still gated on having a Grafana ruler rule (or a check that fails when that rule is missing/undefined). As a result, clicking \u201cSilence notifications\u201d toggles state but the drawer never renders, so nothing visible happens in the list view even though silencing is allowed."
+        }
+      ],
+      "false_positives": [
+        {
+          "candidate": "useAllGrafanaPromRuleAbilities incorrectly restricts the ModifyExport ability to Grafana alerting rules only (using prometheusRuleType.grafana.alertingRule), so Grafana recording rules lose the Export menu item even though export is supported"
+        }
+      ],
+      "false_negatives": [],
+      "errors": [],
+      "total_candidates": 3,
+      "total_golden": 2,
+      "tp": 2,
+      "fp": 1,
+      "fn": 0,
+      "errors_count": 0,
+      "precision": 0.6666666666666666,
+      "recall": 1.0,
+      "tool": "devin",
+      "repo_name": "grafana__grafana__devin__PR106778__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/grafana__grafana__devin__PR106778__20260302/pull/1"
     }
   },
   "https://github.com/grafana/grafana/pull/107534": {
@@ -14363,6 +15350,36 @@
       "tool": "qodo-v2",
       "repo_name": "grafana__grafana__qodo-v2__PR107534__20260227",
       "pr_url": "https://github.com/code-review-benchmark/grafana__grafana__qodo-v2__PR107534__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [],
+      "false_positives": [
+        {
+          "candidate": "runSplitQuery applies applyTemplateVariables to targets that were already interpolated by runShardSplitQuery, causing double interpolation when shard splitting delegates to time splitting"
+        },
+        {
+          "candidate": "Double interpolation triggers addAdHocFilters twice, resulting in duplicate ad-hoc filter labels/predicates being appended to Loki queries and corrupting the final expression when shard-based query splitting is used"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "The applyTemplateVariables method is called with request.filters as the third parameter, but this parameter is not used in the corresponding test setup.",
+          "severity": "Low"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 2,
+      "total_golden": 1,
+      "tp": 0,
+      "fp": 2,
+      "fn": 1,
+      "errors_count": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "tool": "devin",
+      "repo_name": "grafana__grafana__devin__PR107534__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/grafana__grafana__devin__PR107534__20260302/pull/1"
     }
   },
   "https://github.com/grafana/grafana/pull/79265": {
@@ -15030,6 +16047,53 @@
       "tool": "qodo-v2",
       "repo_name": "grafana__grafana__qodo-v2__PR79265__20260227",
       "pr_url": "https://github.com/code-review-benchmark/grafana__grafana__qodo-v2__PR79265__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "Race condition: Multiple concurrent requests could pass the device count check simultaneously and create devices beyond the limit. Consider using a database transaction or lock.",
+          "severity": "High",
+          "matched_candidate": "CreateOrUpdateDevice has a TOCTOU race: the device count check and the insert are not atomic, allowing concurrent requests to both pass the limit check and insert, exceeding the configured device limit",
+          "confidence": 0.97,
+          "reasoning": "Both describe a race/TOCTOU condition where concurrent requests can pass a non-atomic device count check and then insert/update, exceeding the device limit; both imply need for transactional/locking protection."
+        }
+      ],
+      "false_positives": [
+        {
+          "candidate": "tagDeviceUI populates the local cache before calling CreateOrUpdateDevice, so if the DB returns ErrDeviceLimitReached the cache remains set and subsequent requests bypass the device limit for the cache TTL (~29 minutes)"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "Anonymous authentication now fails entirely if anonDeviceService.TagDevice returns ErrDeviceLimitReached. Previously, device tagging was asynchronous and non-blocking. This change prevents anonymous users from authenticating when the device limit is reached.",
+          "severity": "Medium"
+        },
+        {
+          "golden_comment": "This call won\u2019t compile: dbSession.Exec(args...) is given a []interface{} where the first element is the query, but Exec\u2019s signature requires a first parameter of type string (not an interface{} splat).",
+          "severity": "Medium"
+        },
+        {
+          "golden_comment": "Returning ErrDeviceLimitReached when no rows were updated is misleading; the device might not exist.",
+          "severity": "Low"
+        },
+        {
+          "golden_comment": "Time window calculation inconsistency: Using device.UpdatedAt.UTC().Add(-anonymousDeviceExpiration) as the lower bound but device.UpdatedAt as the current time may not match the intended logic. Consider using time.Now().UTC() consistently.",
+          "severity": "Low"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 2,
+      "total_golden": 5,
+      "tp": 1,
+      "fp": 1,
+      "fn": 4,
+      "errors_count": 0,
+      "precision": 0.5,
+      "recall": 0.2,
+      "tool": "devin",
+      "repo_name": "grafana__grafana__devin__PR79265__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/grafana__grafana__devin__PR79265__20260302/pull/1"
     }
   },
   "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/9": {
@@ -15469,6 +16533,37 @@
       "tool": "qodo-v2",
       "repo_name": "discourse__discourse-graphite__qodo-v2__PR9__20260227",
       "pr_url": "https://github.com/code-review-benchmark/discourse__discourse-graphite__qodo-v2__PR9__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [],
+      "false_positives": [
+        {
+          "candidate": "LRU cache key in translate_accelerator.rb does not include SiteSetting.default_locale, so when the dynamic fallback chain changes (via FallbackLocaleList), cached translations can become stale after the site default locale is updated"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "Thread-safety issue with lazy @loaded_locales",
+          "severity": "Low"
+        },
+        {
+          "golden_comment": "Consider normalizing the input locale (e.g., to a symbol) when checking/loading here to avoid double-loading if the same locale is passed as a String vs Symbol (also applies to other locations in the PR).",
+          "severity": "Low"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 1,
+      "total_golden": 2,
+      "tp": 0,
+      "fp": 1,
+      "fn": 2,
+      "errors_count": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "tool": "devin",
+      "repo_name": "discourse__discourse-graphite__devin__PR9__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/discourse__discourse-graphite__devin__PR9__20260302/pull/1"
     }
   },
   "https://github.com/grafana/grafana/pull/76186": {
@@ -15881,6 +16976,40 @@
       "tool": "qodo-v2",
       "repo_name": "grafana__grafana__qodo-v2__PR76186__20260227",
       "pr_url": "https://github.com/code-review-benchmark/grafana__grafana__qodo-v2__PR76186__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [],
+      "false_positives": [
+        {
+          "candidate": "TestLogger.FromContext returns a new disconnected TestLogger instance (NewTestLogger()) instead of the receiver, causing logs to be recorded on a throwaway logger rather than the one referenced by tests"
+        },
+        {
+          "candidate": "Because TestLogger.FromContext returns a new instance, log assertions in tests (e.g., checking InfoLogs.Calls/messages) can silently show zero calls even when logging occurred via logger.FromContext(ctx).Info(...), breaking the test double contract"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "The ContextualLoggerMiddleware methods (QueryData, CallResource, CheckHealth, CollectMetrics) panic when a nil request is received. This occurs because they directly access req.PluginContext (via the instrumentContext function) without first checking if req is nil. This is a regression, as previous middleware layers gracefully handled nil requests.",
+          "severity": "High"
+        },
+        {
+          "golden_comment": "The traceID is no longer logged for plugin requests. During a refactoring, the tracing import and the logic to extract and add traceID from the context to log parameters were removed from the LoggerMiddleware. The newly introduced ContextualLoggerMiddleware does not add this information, resulting in missing traceID in plugin request logs and impacting debugging and request tracing capabilities.",
+          "severity": "Low"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 2,
+      "total_golden": 2,
+      "tp": 0,
+      "fp": 2,
+      "fn": 2,
+      "errors_count": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "tool": "devin",
+      "repo_name": "grafana__grafana__devin__PR76186__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/grafana__grafana__devin__PR76186__20260302/pull/1"
     }
   },
   "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/10": {
@@ -16590,6 +17719,48 @@
       "tool": "qodo-v2",
       "repo_name": "discourse__discourse-graphite__qodo-v2__PR10__20260227",
       "pr_url": "https://github.com/code-review-benchmark/discourse__discourse-graphite__qodo-v2__PR10__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [],
+      "false_positives": [
+        {
+          "candidate": "Migration can crash with NoMethodError by unconditionally accessing result[0]['id'] when the embed_category setting is missing or no category matches (query returns zero rows)"
+        },
+        {
+          "candidate": "Migration builds an INSERT SQL string by interpolating unescaped host values (h) from site_settings, which can break on quotes and enables SQL injection; should use quoting/parameterization"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "NoMethodError before_validation in EmbeddableHost",
+          "severity": "Critical"
+        },
+        {
+          "golden_comment": "The update and destroy methods in Admin::EmbeddableHostsController do not validate the existence of the EmbeddableHost record retrieved by ID. If EmbeddableHost.where(id: params[:id]).first returns nil (i.e., the host does not exist), attempting to call methods on the nil object (e.g., save_host or destroy) will result in a NoMethodError.",
+          "severity": "Medium"
+        },
+        {
+          "golden_comment": "record_for_host compares lower(host) = ? but does not normalize the parameter\u2019s case, so mixed\u2011case referer hosts may fail to match even though comparison intends to be case\u2011insensitive.",
+          "severity": "Medium"
+        },
+        {
+          "golden_comment": "Because this migration inserts embeddable_hosts rows with raw SQL, any existing embeddable_hosts values that include http:// or /https:// or path segments won\u2019t go through the EmbeddableHost model\u2019s normalization, so the new host lookup (which compares only the bare host) may fail for migrated data. Consider ensuring that migrated hosts are normalized to the same format as newly created EmbeddableHost records so existing embedding configurations keep working.",
+          "severity": "High"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 2,
+      "total_golden": 4,
+      "tp": 0,
+      "fp": 2,
+      "fn": 4,
+      "errors_count": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "tool": "devin",
+      "repo_name": "discourse__discourse-graphite__devin__PR10__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/discourse__discourse-graphite__devin__PR10__20260302/pull/1"
     }
   },
   "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/7": {
@@ -17157,6 +18328,53 @@
       "tool": "qodo-v2",
       "repo_name": "discourse__discourse-graphite__qodo-v2__PR7__20260227",
       "pr_url": "https://github.com/code-review-benchmark/discourse__discourse-graphite__qodo-v2__PR7__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "In .topic-meta-data h5 a, the original code had color: scale-color($primary, $lightness: 30%) but was changed to dark-light-choose(scale-color($primary, $lightness: 70%), scale-color($secondary, $lightness: 30%)). The lightness for the light theme changed from 30% to 70%, which is a dramatic inversion",
+          "severity": "Low",
+          "matched_candidate": "In desktop/topic-post.scss for `.embedded-posts .topic-meta-data h5 a`, the `dark-light-choose` light/dark values are swapped, changing light-theme link color from `scale-color($primary, $lightness: 30%)` to `70%` and making embedded post meta-data links/author names hard to read on light themes",
+          "confidence": 0.9,
+          "reasoning": "Both point to the same underlying change in `.topic-meta-data h5 a`: the light-theme color moved from `scale-color($primary, $lightness: 30%)` to a much lighter `70%` via `dark-light-choose(...)`, effectively inverting/altering the intended lightness and harming readability. Candidate additionally mentions swapped values, but still identifies the same problematic lightness change for the light theme."
+        },
+        {
+          "golden_comment": "This change for desktop/user.css changes $primary from 30% to 50% for the light theme; most other changes preserve the original $primary value and move the complement to $secondary for dark. Consider reviewing this (also applies to a similar .name change in the mobile variant).",
+          "severity": "Low",
+          "matched_candidate": "In mobile/user.scss for `.group-member-info .name`, the `dark-light-choose` transformation changes the light-theme lightness from `30%` to `50%`, making group member names lighter on light themes",
+          "confidence": 0.86,
+          "reasoning": "The golden comment flags an unintended change of $primary light-theme lightness from 30% to 50% in desktop/user.css and notes a similar .name change in the mobile variant. The candidate specifically identifies the mobile `.group-member-info .name` light-theme lightness changing from 30% to 50%. This matches the same underlying concern (the 30%\u219250% shift), though it only covers the mobile instance, not the desktop one."
+        },
+        {
+          "golden_comment": "In topic-post.css the original code used $lightness: 70% but the replacement uses $lightness: 30% for the light theme. This makes the text significantly darker than intended.",
+          "severity": "Low",
+          "matched_candidate": "In desktop/topic-post.scss for `.embedded-posts .topic-meta-data h5 a`, the `dark-light-choose` light/dark values are swapped, changing light-theme link color from `scale-color($primary, $lightness: 30%)` to `70%` and making embedded post meta-data links/author names hard to read on light themes",
+          "confidence": 0.86,
+          "reasoning": "Golden says the light theme lightness was changed from 70% to 30%, making text darker than intended. The candidate also flags a light/dark swap that changes the light-theme value between 30% and 70% and notes readability impact on light themes. This is the same underlying issue: incorrect light-theme lightness value (30% instead of 70%) leading to darker text."
+        }
+      ],
+      "false_positives": [
+        {
+          "candidate": "In mobile/modal.scss for `.custom-message-length`, the `dark-light-choose` light/dark values are swapped, changing light-theme color from `scale-color($primary, $lightness: 70%)` to `30%` and inverting intended contrast on both light and dark themes"
+        },
+        {
+          "candidate": "In mobile/topic-post.scss for `.topic-map h3`, the `dark-light-choose` transformation changes the light-theme lightness from `20%` to `50%` (and uses `50%` for both branches), making headings less prominent and inconsistent with the desktop equivalent"
+        }
+      ],
+      "false_negatives": [],
+      "errors": [],
+      "total_candidates": 5,
+      "total_golden": 3,
+      "tp": 3,
+      "fp": 2,
+      "fn": 0,
+      "errors_count": 0,
+      "precision": 0.6,
+      "recall": 1.0,
+      "tool": "devin",
+      "repo_name": "discourse__discourse-graphite__devin__PR7__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/discourse__discourse-graphite__devin__PR7__20260302/pull/1"
     }
   },
   "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/8": {
@@ -17763,6 +18981,45 @@
       "tool": "qodo-v2",
       "repo_name": "discourse__discourse-graphite__qodo-v2__PR8__20260227",
       "pr_url": "https://github.com/code-review-benchmark/discourse__discourse-graphite__qodo-v2__PR8__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "In the next action, capping the next offset at user_count can produce an empty page (e.g., total equal to limit results in offset == total, showing 2/2 with no members). This can cause confusing UX on the last page.",
+          "severity": "Medium",
+          "matched_candidate": "totalPages calculation uses Math.floor(user_count / limit) + 1, causing an off-by-one error when user_count is evenly divisible by limit (should use Math.ceil)",
+          "confidence": 0.86,
+          "reasoning": "Both comments describe an off-by-one pagination bug at the boundary when user_count is exactly divisible by limit, leading to an extra/empty last page (offset == total). The candidate frames it as incorrect totalPages calculation (floor+1 vs ceil), which is the same underlying issue causing the confusing empty page UX noted in the golden comment."
+        }
+      ],
+      "false_positives": [
+        {
+          "candidate": "Inflated totalPages prevents showingLast (currentPage === totalPages) from being true on the real last page, leaving the Next button enabled and allowing navigation to a phantom empty final page"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": " The findMembers() call is now asynchronous and unhandled. The controller may not have member data immediately available, creating a race condition.",
+          "severity": "High"
+        },
+        {
+          "golden_comment": "HTTP method mismatch in .remove_member - test uses PUT but remove_member action expects DELETE",
+          "severity": "Medium"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 2,
+      "total_golden": 3,
+      "tp": 1,
+      "fp": 1,
+      "fn": 2,
+      "errors_count": 0,
+      "precision": 0.5,
+      "recall": 0.3333333333333333,
+      "tool": "devin",
+      "repo_name": "discourse__discourse-graphite__devin__PR8__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/discourse__discourse-graphite__devin__PR8__20260302/pull/1"
     }
   },
   "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/3": {
@@ -18276,6 +19533,41 @@
       "tool": "qodo-v2",
       "repo_name": "discourse__discourse-graphite__qodo-v2__PR3__20260227",
       "pr_url": "https://github.com/code-review-benchmark/discourse__discourse-graphite__qodo-v2__PR3__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "BlockedEmail.should_block_email? method has side effects during a read operation - it updates statistics even when just checking if an email should be blocked. This could cause race conditions in concurrent environments and makes the method name misleading.",
+          "severity": "Medium",
+          "matched_candidate": "BlockedEmail.should_block? is invoked twice per signup because UsersController#create calls user.valid? and then user.save (which re-runs validations), causing match_count and last_match_at to be updated twice per attempt",
+          "confidence": 0.86,
+          "reasoning": "Both point to the same core problem: the block-check method has side effects (updating match_count/last_match_at) when it\u2019s called, even during what should be a read/check. The candidate adds a specific manifestation (double invocation via validations leading to double updates), which is a consequence of the side-effectful design highlighted in the golden comment."
+        }
+      ],
+      "false_positives": [
+        {
+          "candidate": "BlockedEmail.should_block? increments match_count via a non-atomic read-modify-write (load record, increment in Ruby, save), which can lose updates under concurrent requests"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "Regex pattern @(#{domains}) only matches domain suffixes, not full domains. evil.example.com would match whitelist entry example.com.",
+          "severity": "Medium"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 2,
+      "total_golden": 2,
+      "tp": 1,
+      "fp": 1,
+      "fn": 1,
+      "errors_count": 0,
+      "precision": 0.5,
+      "recall": 0.5,
+      "tool": "devin",
+      "repo_name": "discourse__discourse-graphite__devin__PR3__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/discourse__discourse-graphite__devin__PR3__20260302/pull/1"
     }
   },
   "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/5": {
@@ -18719,6 +20011,40 @@
       "tool": "qodo-v2",
       "repo_name": "discourse__discourse-graphite__qodo-v2__PR5__20260227",
       "pr_url": "https://github.com/code-review-benchmark/discourse__discourse-graphite__qodo-v2__PR5__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [],
+      "false_positives": [
+        {
+          "candidate": "In the `order` mixin, `-webkit-box-ordinal-group` (and `-moz-box-ordinal-group`) incorrectly uses `$val` directly even though the old 2009 flexbox property is 1-indexed, causing off-by-one ordering differences vs standard `order` (should be `$val + 1`)."
+        },
+        {
+          "candidate": "`@include order(2)` on `.extra-info-wrapper` has no effect because `.extra-info-wrapper` is not a direct child of the flex container `.contents` (it is wrapped by an Ember component div), so the element is not reordered as intended."
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "Mixing float: left with flexbox causes layout issues. Further this PR removes the float-based right alignment for .d-header .panel, which may cause the login panel in the non-Ember/noscript header (where .panel is nested inside .row and not a flex item) to stack under the title instead of remaining right-aligned.",
+          "severity": "Low"
+        },
+        {
+          "golden_comment": "-ms-align-items never existed in any version of IE/Edge; the correct legacy property is -ms-flex-align.",
+          "severity": "Low"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 2,
+      "total_golden": 2,
+      "tp": 0,
+      "fp": 2,
+      "fn": 2,
+      "errors_count": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "tool": "devin",
+      "repo_name": "discourse__discourse-graphite__devin__PR5__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/discourse__discourse-graphite__devin__PR5__20260302/pull/1"
     }
   },
   "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/6": {
@@ -19135,6 +20461,39 @@
       "tool": "qodo-v2",
       "repo_name": "discourse__discourse-graphite__qodo-v2__PR6__20260227",
       "pr_url": "https://github.com/code-review-benchmark/discourse__discourse-graphite__qodo-v2__PR6__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [],
+      "false_positives": [
+        {
+          "candidate": "Method `include_website_name` is missing the required `?` suffix (`include_website_name?`), so ActiveModel::Serializer never calls it as an inclusion guard and `website_name` is always serialized"
+        },
+        {
+          "candidate": "Because the `website_name` inclusion guard is not invoked, `website_name` is serialized even when `website` is blank/nil, adding an unnecessary `nil` field to the JSON output"
+        },
+        {
+          "candidate": "Broken `include_website_name?` guard causes a privacy leak: `website` is in `untrusted_attributes` (hidden for anonymous TL0 profile views) but `website_name` is not, so the user\u2019s website hostname can be exposed to anonymous viewers"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "The include_website_name method is missing the required ? suffix. Rails serializers expect include_ methods to end with ? for conditional attribute inclusion, a convention followed by other methods in this serializer. Without it, the website_name attribute may not be conditionally included as intended. Additionally, the '.' << website_host string concatenation should be replaced with '.' + website_host or '.#{website_host}' to avoid mutating string literals, which can lead to issues.",
+          "severity": "Medium"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 3,
+      "total_golden": 1,
+      "tp": 0,
+      "fp": 3,
+      "fn": 1,
+      "errors_count": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "tool": "devin",
+      "repo_name": "discourse__discourse-graphite__devin__PR6__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/discourse__discourse-graphite__devin__PR6__20260302/pull/1"
     }
   },
   "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/4": {
@@ -20030,6 +21389,63 @@
       "tool": "qodo-v2",
       "repo_name": "discourse__discourse-graphite__qodo-v2__PR4__20260227",
       "pr_url": "https://github.com/code-review-benchmark/discourse__discourse-graphite__qodo-v2__PR4__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "The ERB block closes with end if, which is invalid Ruby/ERB and will raise at render; it should just be end to close the if block.",
+          "severity": "Medium",
+          "matched_candidate": "Invalid ERB/Ruby syntax `<%- end if %>` (missing condition) in `app/views/embed/best.html.erb` causes a `SyntaxError` and crashes template rendering",
+          "confidence": 0.95,
+          "reasoning": "Both point to the same underlying problem: the ERB template uses `<%- end if %>` to close an `if` block, which is invalid syntax in this context and will raise a SyntaxError during rendering; it should be just `end`."
+        }
+      ],
+      "false_positives": [
+        {
+          "candidate": "`app/jobs/scheduled/poll_feed.rb` calls `i.content.scrub` without nil-check/fallback; feeds without `content` (using `description`) cause `NoMethodError` and crash the polling job"
+        },
+        {
+          "candidate": "XSS risk in `app/views/layouts/embed.html.erb` by interpolating unescaped `request.referer` into a single-quoted JavaScript string; a `'` in the referer can break out and inject script"
+        },
+        {
+          "candidate": "`TopicEmbed#import` mutates the caller-provided `contents` string in-place via `<<`, potentially causing unexpected side effects and repeated footer accumulation on reuse"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "SSRF vulnerability using open(url) without validation",
+          "severity": "Critical"
+        },
+        {
+          "golden_comment": "The current origin validation using indexOf is insufficient and can be bypassed. An attacker could use a malicious domain like evil-discourseUrl.com to pass this check.",
+          "severity": "Medium"
+        },
+        {
+          "golden_comment": "postMessage targetOrigin should be the origin (scheme+host+port), not the full referrer URL; using the full URL will cause the message to be dropped and prevent resizing.",
+          "severity": "Medium"
+        },
+        {
+          "golden_comment": "The code sets X-Frame-Options: ALLOWALL which completely disables clickjacking protection. The referer validation can be bypassed (referer headers are easily spoofed), and the fallback to empty string for nil referer masks validation failures.",
+          "severity": "Medium"
+        },
+        {
+          "golden_comment": "The TopicEmbed.import method is susceptible to a NoMethodError if the contents parameter is nil when attempting to append a string, and an XSS vulnerability due to unescaped url interpolation in the generated HTML.",
+          "severity": "Medium"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 4,
+      "total_golden": 6,
+      "tp": 1,
+      "fp": 3,
+      "fn": 5,
+      "errors_count": 0,
+      "precision": 0.25,
+      "recall": 0.16666666666666666,
+      "tool": "devin",
+      "repo_name": "discourse__discourse-graphite__devin__PR4__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/discourse__discourse-graphite__devin__PR4__20260302/pull/1"
     }
   },
   "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/1": {
@@ -20651,6 +22067,57 @@
       "tool": "qodo-v2",
       "repo_name": "discourse__discourse-graphite__qodo-v2__PR1__20260227",
       "pr_url": "https://github.com/code-review-benchmark/discourse__discourse-graphite__qodo-v2__PR1__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "The downsize method is defined twice. The second definition, which expects a single dimensions string parameter, overrides the first, which expected separate max_width and max_height parameters. This makes the original method unreachable and breaks existing code that calls it with separate width and height arguments.",
+          "severity": "Medium",
+          "matched_candidate": "`app/jobs/regular/resize_emoji.rb:14` calls `OptimizedImage.downsize(path, path, 100, 100, opts)` with 5 positional args, which will raise `ArgumentError` after the method is overwritten to accept only 3..4 args",
+          "confidence": 0.9,
+          "reasoning": "The golden issue is that `downsize` is defined twice and the second definition overrides the first, changing the expected parameters and breaking callers that pass separate width/height. The candidate points out a specific call site passing 5 positional args that will raise `ArgumentError` because the method was overwritten to accept fewer args. This is the same underlying problem (signature change due to override), just observed from a caller perspective."
+        },
+        {
+          "golden_comment": "Hardcoding maxSizeKB = 10 * 1024 ignores Discourse.SiteSettings['max_' + type + '_size_kb'], so the client-side limit can diverge from server-side and per-type settings (also applies to the 413 handler below).",
+          "severity": "Low",
+          "matched_candidate": "Client-side upload validation in `validateUploadedFile` (`app/assets/javascripts/discourse/lib/utilities.js:182`) hardcodes a 10MB limit, ignoring admin-configured `max_image_size_kb` / `max_attachment_size_kb` settings and losing per-type limits",
+          "confidence": 0.9,
+          "reasoning": "The candidate flags that `validateUploadedFile` hardcodes a 10MB client-side limit and ignores the admin-configured per-type max size settings (`max_image_size_kb` / `max_attachment_size_kb`). This is the same core issue as the golden comment about hardcoding `maxSizeKB = 10 * 1024` instead of using `Discourse.SiteSettings['max_' + type + '_size_kb']`, leading to divergence from server/per-type limits. It doesn\u2019t explicitly mention the 413 handler, but the primary underlying problem matches."
+        }
+      ],
+      "false_positives": [
+        {
+          "candidate": "`lib/tasks/uploads.rake:347` also calls `OptimizedImage.downsize` with separate width/height args and will similarly break due to the overwritten method signature"
+        },
+        {
+          "candidate": "The upload validation error message (around `utilities.js:184`) will display `10240` KB instead of the configured max size because of the hardcoded 10MB value"
+        },
+        {
+          "candidate": "Existing JS tests (`test/javascripts/lib/utilities-test.js.es6:52-61`) will fail because they expect site-setting-based limits (e.g., `max_image_size_kb = 5`) but the code now uses a hardcoded 10240KB limit"
+        },
+        {
+          "candidate": "`displayErrorForUpload` 413 handler (`app/assets/javascripts/discourse/lib/utilities.js:246`) hardcodes 10MB, causing the 'file too large' message to always show 10240 KB regardless of actual server/site configuration"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "Passing 80% as the dimensions can fail for animated GIFs when allow_animated_thumbnails is true, since the animated path uses gifsicle --resize-fit which expects WxH geometry, not a percentage; downsizing would then silently fail.",
+          "severity": "Medium"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 7,
+      "total_golden": 3,
+      "tp": 2,
+      "fp": 4,
+      "fn": 1,
+      "errors_count": 0,
+      "precision": 0.2857142857142857,
+      "recall": 0.6666666666666666,
+      "tool": "devin",
+      "repo_name": "discourse__discourse-graphite__devin__PR1__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/discourse__discourse-graphite__devin__PR1__20260302/pull/1"
     }
   },
   "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/2": {
@@ -21148,6 +22615,37 @@
       "tool": "qodo-v2",
       "repo_name": "discourse__discourse-graphite__qodo-v2__PR2__20260227",
       "pr_url": "https://github.com/code-review-benchmark/discourse__discourse-graphite__qodo-v2__PR2__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "logic: Potential nil pointer exception - if no TopicUser record exists, tu will be nil and calling methods on it will crash",
+          "severity": "High",
+          "matched_candidate": "unsubscribe action does not handle missing TopicUser record: TopicUser.find_by can return nil and the next line calls tu.notification_level, causing NoMethodError/500 when user has no TopicUser for the topic (e.g., unsubscribe link from email)",
+          "confidence": 0.97,
+          "reasoning": "Both describe the same bug: TopicUser.find_by may return nil when no record exists, and subsequent calls on tu (e.g., notification_level) would raise a NoMethodError/nil pointer exception in unsubscribe."
+        }
+      ],
+      "false_positives": [],
+      "false_negatives": [
+        {
+          "golden_comment": "Typo in property name: 'stopNotificiationsText' should be 'stopNotificationsText' (missing 'n' in 'Notifications')",
+          "severity": "Low"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 1,
+      "total_golden": 2,
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "errors_count": 0,
+      "precision": 1.0,
+      "recall": 0.5,
+      "tool": "devin",
+      "repo_name": "discourse__discourse-graphite__devin__PR2__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/discourse__discourse-graphite__devin__PR2__20260302/pull/1"
     }
   },
   "https://github.com/calcom/cal.com/pull/22532": {
@@ -21690,6 +23188,41 @@
       "tool": "qodo-v2",
       "repo_name": "cal_dot_com__cal.com__qodo-v2__PR22532__20260227",
       "pr_url": "https://github.com/code-review-benchmark/cal_dot_com__cal.com__qodo-v2__PR22532__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "The updateManyByCredentialId call uses an empty data object, which prevents Prisma's @updatedAt decorator from updating the updatedAt timestamp. This results in inaccurate cache status tracking, as the timestamp isn't updated when the cache is refreshed. To fix this, explicitly set the updatedAt field.",
+          "severity": "Medium",
+          "matched_candidate": "Prisma updateMany called with empty data (SelectedCalendarRepository.updateManyByCredentialId(this.credential.id, {})) is a no-op and does not trigger @updatedAt, so SelectedCalendar.updatedAt is never refreshed as intended",
+          "confidence": 0.93,
+          "reasoning": "The candidate flags that updateMany is called with an empty data object, making it a no-op that does not trigger Prisma's @updatedAt, so updatedAt is not refreshed. This is the same core issue as the golden comment (missing updatedAt update leading to incorrect cache status tracking), even if it doesn't explicitly mention cache tracking or the exact fix."
+        }
+      ],
+      "false_positives": [
+        {
+          "candidate": "connectedCalendarsHandler directly instantiates CalendarCacheRepository instead of using CalendarCache.init(), bypassing the calendar-cache feature flag and causing cache status/UI to appear even when the feature is disabled"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "logic: macOS-specific sed syntax with empty string after -i flag will fail on Linux systems",
+          "severity": "Low"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 2,
+      "total_golden": 2,
+      "tp": 1,
+      "fp": 1,
+      "fn": 1,
+      "errors_count": 0,
+      "precision": 0.5,
+      "recall": 0.5,
+      "tool": "devin",
+      "repo_name": "cal_dot_com__cal.com__devin__PR22532__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/cal_dot_com__cal.com__devin__PR22532__20260302/pull/1"
     }
   },
   "https://github.com/calcom/cal.com/pull/8330": {
@@ -22205,6 +23738,39 @@
       "tool": "qodo-v2",
       "repo_name": "cal_dot_com__cal.com__qodo-v2__PR8330__20260227",
       "pr_url": "https://github.com/code-review-benchmark/cal_dot_com__cal.com__qodo-v2__PR8330__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "Incorrect end time calculation using slotStartTime instead of slotEndTime",
+          "severity": "Medium",
+          "matched_candidate": "`end` is computed from `slotStartTime` instead of `slotEndTime`, making `end` equal to `start` and breaking the working-hours boundary check for slots that extend past working hours",
+          "confidence": 0.98,
+          "reasoning": "The candidate explicitly states that `end` is calculated from `slotStartTime` rather than `slotEndTime`, which is exactly the incorrect end time calculation described in the golden comment."
+        },
+        {
+          "golden_comment": "Using === for dayjs object comparison will always return false as it compares object references, not values. Use .isSame() method instead: dayjs(date.start).add(utcOffset, 'minutes').isSame(dayjs(date.end).add(utcOffset, minutes))",
+          "severity": "Medium",
+          "matched_candidate": "Comparing two separately created Dayjs objects with `===` uses reference equality and will always be false, so the intended start==end (zero-length override) check never triggers; should use `.isSame()`",
+          "confidence": 0.96,
+          "reasoning": "The candidate flags the same core bug: using `===` to compare two Dayjs instances compares references, so it won\u2019t detect equal times; it recommends using `.isSame()` instead, matching the golden comment\u2019s intent."
+        }
+      ],
+      "false_positives": [],
+      "false_negatives": [],
+      "errors": [],
+      "total_candidates": 2,
+      "total_golden": 2,
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "errors_count": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "tool": "devin",
+      "repo_name": "cal_dot_com__cal.com__devin__PR8330__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/cal_dot_com__cal.com__devin__PR8330__20260302/pull/1"
     }
   },
   "https://github.com/calcom/cal.com/pull/14943": {
@@ -22674,6 +24240,37 @@
       "tool": "qodo-v2",
       "repo_name": "cal_dot_com__cal.com__qodo-v2__PR14943__20260227",
       "pr_url": "https://github.com/code-review-benchmark/cal_dot_com__cal.com__qodo-v2__PR14943__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "The deletion logic in scheduleSMSReminders.ts incorrectly deletes non-SMS workflow reminders (e.g., Email, WhatsApp) that have retryCount > 1. This occurs because the retryCount condition within the OR clause for deletion lacks a method: WorkflowMethods.SMS filter, causing it to apply to all reminder types instead of only SMS reminders, which is the intended scope of this function.",
+          "severity": "High",
+          "matched_candidate": "The deleteMany query\u2019s second OR branch filters only on retryCount > 1 without constraining method, so the SMS cron job can delete non-SMS (EMAIL/WHATSAPP) WorkflowReminder rows with retryCount > 1; add method: WorkflowMethods.SMS to that branch.",
+          "confidence": 0.97,
+          "reasoning": "The candidate describes the same bug: in the deleteMany OR clause, the retryCount > 1 branch lacks a method=SMS constraint, causing deletion of non-SMS reminders (email/whatsapp) with retryCount > 1. This matches the golden issue and proposed fix."
+        }
+      ],
+      "false_positives": [],
+      "false_negatives": [
+        {
+          "golden_comment": "Using retryCount: reminder.retryCount + 1 reads a possibly stale value and can lose increments under concurrency; consider an atomic increment via Prisma (increment: 1) to avoid race conditions (also applies to the similar update in the catch block).",
+          "severity": "High"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 1,
+      "total_golden": 2,
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "errors_count": 0,
+      "precision": 1.0,
+      "recall": 0.5,
+      "tool": "devin",
+      "repo_name": "cal_dot_com__cal.com__devin__PR14943__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/cal_dot_com__cal.com__devin__PR14943__20260302/pull/1"
     }
   },
   "https://github.com/calcom/cal.com/pull/22345": {
@@ -23132,6 +24729,33 @@
       "tool": "qodo-v2",
       "repo_name": "cal_dot_com__cal.com__qodo-v2__PR22345__20260227",
       "pr_url": "https://github.com/code-review-benchmark/cal_dot_com__cal.com__qodo-v2__PR22345__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [],
+      "false_positives": [],
+      "false_negatives": [
+        {
+          "golden_comment": "In getBaseConditions(), the else if (filterConditions) and final else branches are unreachable. This is because getAuthorizationConditions() always returns a non-null Prisma.Sql object, making authConditions always truthy, which means only the first two if/else if conditions are ever evaluated.",
+          "severity": "Low"
+        },
+        {
+          "golden_comment": "Fetching userIdsFromOrg only when teamsFromOrg.length > 0 can exclude org-level members for orgs without child teams; consider deriving from teamIds (which includes orgId) or removing the guard so org-only orgs still include member user bookings.",
+          "severity": "Medium"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 0,
+      "total_golden": 2,
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "errors_count": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "tool": "devin",
+      "repo_name": "cal_dot_com__cal.com__devin__PR22345__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/cal_dot_com__cal.com__devin__PR22345__20260302/pull/1"
     }
   },
   "https://github.com/calcom/cal.com/pull/11059": {
@@ -24018,6 +25642,68 @@
       "tool": "qodo-v2",
       "repo_name": "cal_dot_com__cal.com__qodo-v2__PR11059__20260227",
       "pr_url": "https://github.com/code-review-benchmark/cal_dot_com__cal.com__qodo-v2__PR11059__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "Invalid Zod schema syntax. Computed property keys like [z.string().toString()] are not valid in Zod object schemas and will cause runtime errors. ",
+          "severity": "High",
+          "matched_candidate": "minimumTokenResponseSchema in parseRefreshTokenResponse.ts incorrectly uses Zod objects as computed property keys, which stringify to \"[object Object]\" and overwrite each other, effectively disabling intended expiry/extra-field validation",
+          "confidence": 0.93,
+          "reasoning": "Both describe the same underlying problem: the Zod object schema is using computed property keys derived from Zod schemas (e.g., z.string()), which stringify (\"[object Object]\") and are invalid/unsafe, leading to runtime issues and broken validation."
+        },
+        {
+          "golden_comment": "parseRefreshTokenResponse returns a Zod safeParse result ({ success, data, error }), not the credential key object. Persisting that as key stores the wrapper instead of the token payload; we should store the parsed data or use schema parse.",
+          "severity": "High",
+          "matched_candidate": "Google Calendar token refresh stores the full Zod safeParse result ({ success, data }) as the credential key instead of storing only the parsed data object, corrupting the saved credentials",
+          "confidence": 0.94,
+          "reasoning": "Both describe the same bug: parseRefreshTokenResponse returns a Zod safeParse wrapper ({success,data,error}) and the code persists that wrapper as the credential key instead of storing the parsed token payload (data) or using parse."
+        },
+        {
+          "golden_comment": "When APP_CREDENTIAL_SHARING_ENABLED and CALCOM_CREDENTIAL_SYNC_ENDPOINT are set, the refreshFunction helper returns the fetch Response, but several callers (for example GoogleCalendarService.refreshAccessToken expecting res.data, and HubspotCalendarService.refreshAccessToken expecting a HubspotToken) assume it returns the integration-specific token object. That mismatch will cause runtime errors in the sync-enabled path unless the return type or those call sites are adjusted.",
+          "severity": "High",
+          "matched_candidate": "When credential sharing is enabled, refreshOAuthTokens returns a raw fetch Response object, but the Hubspot integration treats it as a HubspotToken and reads .expiresIn/.accessToken, resulting in NaN expiry and missing access token",
+          "confidence": 0.9,
+          "reasoning": "Both describe the same core bug: in the credential-sharing/sync-enabled path the refresh helper returns a raw fetch Response, while callers expect an integration-specific token object (e.g., HubspotToken / res.data). The candidate explicitly calls out Hubspot reading token fields from a Response, which is the mismatch highlighted by the golden comment (though it doesn\u2019t mention Google, it\u2019s the same underlying issue)."
+        },
+        {
+          "golden_comment": "When the sync endpoint path is used, res is a fetch Response and has no .data; res?.data will be undefined and token.access_token will throw at runtime. This relies on a consistent return shape from refreshOAuthTokens, which isn\u2019t guaranteed currently.",
+          "severity": "High",
+          "matched_candidate": "When credential sharing is enabled, refreshOAuthTokens returns a raw fetch Response object, but the Hubspot integration treats it as a HubspotToken and reads .expiresIn/.accessToken, resulting in NaN expiry and missing access token",
+          "confidence": 0.86,
+          "reasoning": "Both describe a return-shape mismatch from refreshOAuthTokens: in some path it returns a raw fetch Response, but the caller assumes a token-like object and accesses token fields (golden: res.data/access_token; candidate: expiresIn/accessToken). This leads to undefined/missing token data and runtime/logic errors. Same underlying issue: inconsistent return type/shape causing invalid property access."
+        }
+      ],
+      "false_positives": [
+        {
+          "candidate": "After the corrupted Google Calendar credential key is saved, subsequent loads fail because googleCredentialSchema.parse expects the token fields directly but receives a { success, data } wrapper, breaking the integration after first refresh"
+        },
+        {
+          "candidate": "Zoho Bigin passes credential.id (credential row ID) as the userId argument to refreshOAuthTokens instead of passing credential.userId, causing the credential sharing sync endpoint to receive the wrong calcomUserId"
+        },
+        {
+          "candidate": "The same credential-sharing return-type mismatch (fetch Response vs expected axios/googleapis response data) also affects Zoho Bigin, Zoho CRM, and Google Calendar callers that expect a parsed token object or .data"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "The parseRefreshTokenResponse function incorrectly sets refresh_token to the hardcoded string 'refresh_token' when it's missing from the OAuth refresh token response. This invalidates the token, breaking subsequent token refreshes and causing authentication failures.",
+          "severity": "High"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 6,
+      "total_golden": 5,
+      "tp": 4,
+      "fp": 3,
+      "fn": 1,
+      "errors_count": 0,
+      "precision": 0.6666666666666666,
+      "recall": 0.8,
+      "tool": "devin",
+      "repo_name": "cal_dot_com__cal.com__devin__PR11059__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/cal_dot_com__cal.com__devin__PR11059__20260302/pull/1"
     }
   },
   "https://github.com/calcom/cal.com/pull/7232": {
@@ -24520,6 +26206,50 @@
       "tool": "qodo-v2",
       "repo_name": "cal_dot_com__cal.com__qodo-v2__PR7232__20260227",
       "pr_url": "https://github.com/code-review-benchmark/cal_dot_com__cal.com__qodo-v2__PR7232__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "When immediateDelete is true, the deleteScheduledEmailReminder function cancels the SendGrid email but fails to delete the corresponding WorkflowReminder record from the database. This creates orphaned database entries and is inconsistent with the immediateDelete: false path, which marks the record as cancelled. The SendGrid DELETE API call is also omitted in this path.",
+          "severity": "High",
+          "matched_candidate": "`deleteScheduledEmailReminder` returns early in the `immediateDelete=true` branch (when `referenceId` exists) after cancelling SendGrid, so it never deletes the corresponding `workflowReminder` DB record",
+          "confidence": 0.86,
+          "reasoning": "The candidate flags that in the immediateDelete=true branch the function returns after cancelling SendGrid and never deletes the corresponding WorkflowReminder DB record, which is the core issue in the golden comment (orphaned DB entry / inconsistent behavior). It does not mention the omitted SendGrid DELETE API call detail, but it captures the main underlying bug about the missing DB deletion due to early return."
+        }
+      ],
+      "false_positives": [
+        {
+          "candidate": "Reschedule path (`handleNewBooking.ts`) can accumulate orphaned `workflowReminder` records with `scheduled: true` and `cancelled: null`, which are not cleaned by the CRON cancel loop until after `scheduledDate` passes"
+        },
+        {
+          "candidate": "In the CRON cancellation handler, a single SendGrid cancel request failure aborts the entire `for...of` loop because the `try-catch` wraps the whole loop, preventing remaining cancellations from running"
+        },
+        {
+          "candidate": "Because the CRON loop aborts on one failure, `Promise.all(workflowRemindersToDelete)` is never reached, so even successfully cancelled reminders in SendGrid are not deleted from the DB"
+        },
+        {
+          "candidate": "The CRON cancellation logic can get stuck retrying the same reminders (including already-cancelled ones) and potentially permanently block cancellation of later reminders due to repeated failures"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "Asynchronous functions deleteScheduledEmailReminder and deleteScheduledSMSReminder are called without await inside forEach loops. This occurs during booking rescheduling/cancellation, and workflow/workflow step deletion/updates. Consequently, scheduled workflow reminders may not be reliably cancelled, potentially leaving them active.",
+          "severity": "Medium"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 5,
+      "total_golden": 2,
+      "tp": 1,
+      "fp": 4,
+      "fn": 1,
+      "errors_count": 0,
+      "precision": 0.2,
+      "recall": 0.5,
+      "tool": "devin",
+      "repo_name": "cal_dot_com__cal.com__devin__PR7232__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/cal_dot_com__cal.com__devin__PR7232__20260302/pull/1"
     }
   },
   "https://github.com/calcom/cal.com/pull/14740": {
@@ -25262,6 +26992,52 @@
       "tool": "qodo-v2",
       "repo_name": "cal_dot_com__cal.com__qodo-v2__PR14740__20260227",
       "pr_url": "https://github.com/code-review-benchmark/cal_dot_com__cal.com__qodo-v2__PR14740__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "The logic for checking team admin/owner permissions is incorrect. This condition uses AND (&&) which requires both isTeamAdmin AND isTeamOwner to be true, but it should use OR (||) since a user needs to be either an admin OR an owner to have permission.",
+          "severity": "Critical",
+          "matched_candidate": "Authorization check for isTeamAdminOrOwner incorrectly uses && instead of ||, requiring users to be both team admin and owner and denying access to admins who are not owners",
+          "confidence": 0.98,
+          "reasoning": "The candidate issue describes the same permission logic bug: using && instead of || for admin/owner checks, incorrectly requiring both roles and denying valid access."
+        },
+        {
+          "golden_comment": "This calls the email sender with the original guests, so existing attendees included in the input will be treated as new when sending notifications, leading to incorrect emails.",
+          "severity": "Medium",
+          "matched_candidate": "sendAddGuestsEmails is called with the unfiltered guests array instead of the deduplicated uniqueGuests, causing existing attendees to receive the wrong (booking confirmation) email template",
+          "confidence": 0.93,
+          "reasoning": "Both describe the same bug: the email-sending function is invoked with the original/unfiltered guests list rather than the deduplicated/filtered list, so existing attendees are treated as newly added and receive incorrect notification emails (e.g., booking confirmation template)."
+        }
+      ],
+      "false_positives": [],
+      "false_negatives": [
+        {
+          "golden_comment": "Case sensitivity bypass in email blacklist",
+          "severity": "High"
+        },
+        {
+          "golden_comment": "uniqueGuests filters out existing attendees and blacklisted emails but does not deduplicate duplicates within the input; createMany can insert duplicate attendee rows if the client submits repeated emails.",
+          "severity": "Medium"
+        },
+        {
+          "golden_comment": "Starting with an array containing an empty string may cause validation issues. Consider starting with an empty array [] and handling the empty state in the MultiEmail component instead.",
+          "severity": "Low"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 2,
+      "total_golden": 5,
+      "tp": 2,
+      "fp": 0,
+      "fn": 3,
+      "errors_count": 0,
+      "precision": 1.0,
+      "recall": 0.4,
+      "tool": "devin",
+      "repo_name": "cal_dot_com__cal.com__devin__PR14740__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/cal_dot_com__cal.com__devin__PR14740__20260302/pull/1"
     }
   },
   "https://github.com/calcom/cal.com/pull/10600": {
@@ -25904,6 +27680,45 @@
       "tool": "qodo-v2",
       "repo_name": "cal_dot_com__cal.com__qodo-v2__PR10600__20260227",
       "pr_url": "https://github.com/code-review-benchmark/cal_dot_com__cal.com__qodo-v2__PR10600__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "Backup code validation is case-sensitive due to the use of indexOf(). This causes validation to fail if a user enters uppercase hex characters, as backup codes should be case-insensitive for a better user experience.",
+          "severity": "Medium",
+          "matched_candidate": "Backup code comparison uses case-sensitive Array.indexOf without normalizing input to lowercase, causing valid uppercase backup codes to be rejected in login and disable endpoints",
+          "confidence": 0.96,
+          "reasoning": "Both describe the same underlying issue: backup code validation/comparison is case-sensitive because it uses Array.indexOf without normalizing case, so uppercase hex backup codes are incorrectly rejected. Candidate also notes affected endpoints, but the core bug matches the golden comment."
+        }
+      ],
+      "false_positives": [],
+      "false_negatives": [
+        {
+          "golden_comment": "The exported function TwoFactor handles backup codes and is in BackupCode.tsx. Inconsistent naming.",
+          "severity": "Low"
+        },
+        {
+          "golden_comment": "Error message mentions 'backup code login' but this is a disable endpoint, not login",
+          "severity": "Low"
+        },
+        {
+          "golden_comment": "Because backupCodes are decrypted and mutated in memory before being written back, two concurrent login requests using the same backupCode could both pass this check and update, so a single backup code may effectively be accepted more than once if used concurrently, weakening the intended one-time-use semantics.",
+          "severity": "High"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 1,
+      "total_golden": 4,
+      "tp": 1,
+      "fp": 0,
+      "fn": 3,
+      "errors_count": 0,
+      "precision": 1.0,
+      "recall": 0.25,
+      "tool": "devin",
+      "repo_name": "cal_dot_com__cal.com__devin__PR10600__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/cal_dot_com__cal.com__devin__PR10600__20260302/pull/1"
     }
   },
   "https://github.com/calcom/cal.com/pull/10967": {
@@ -26598,6 +28413,62 @@
       "tool": "qodo-v2",
       "repo_name": "cal_dot_com__cal.com__qodo-v2__PR10967__20260227",
       "pr_url": "https://github.com/code-review-benchmark/cal_dot_com__cal.com__qodo-v2__PR10967__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "Potential null reference if mainHostDestinationCalendar is undefined if evt.destinationCalendar is null or an empty array ",
+          "severity": "High",
+          "matched_candidate": "EventManager: destructuring destinationCalendar into mainHostDestinationCalendar can yield undefined when destinationCalendar is null/undefined/empty, and then accessing mainHostDestinationCalendar.integration causes a TypeError crash",
+          "confidence": 0.94,
+          "reasoning": "Both describe the same null/undefined risk: destructuring evt.destinationCalendar into mainHostDestinationCalendar can produce undefined when destinationCalendar is null/undefined/empty, leading to a crash when accessing properties on mainHostDestinationCalendar."
+        },
+        {
+          "golden_comment": "Logic error: when externalCalendarId is provided, you're searching for a calendar where externalId === externalCalendarId, but this will always fail since you're looking for a calendar that matches itself. Should likely find by credentialId or use different logic.",
+          "severity": "High",
+          "matched_candidate": "Google Calendar deleteEvent: calendarId fallback has the same self-referencing falsy externalCalendarId find() bug, causing calendarId to resolve to undefined and deletions to incorrectly fall back to \"primary\" instead of the destination calendar",
+          "confidence": 0.9,
+          "reasoning": "Both describe the same logic error: when an externalCalendarId is provided, the code uses a self-referential find/comparison (externalId === externalCalendarId) that can never succeed, leading to calendarId being undefined and triggering an incorrect fallback (e.g., to \"primary\"). The candidate adds context (deleteEvent) but targets the same underlying bug."
+        },
+        {
+          "golden_comment": "Logic inversion in organization creation: The slug property is now conditionally set when IS_TEAM_BILLING_ENABLED is true, instead of when it's false as originally intended. This change, combined with requestedSlug still being set when IS_TEAM_BILLING_ENABLED is true, results in both properties being set when billing is enabled, and neither when disabled",
+          "severity": "Medium",
+          "matched_candidate": "Organization creation: slug assignment conditional is inverted, setting slug when team billing is enabled instead of when it is disabled, leading to missing slugs in non-billing deployments and double-setting slug/requestedSlug in billing deployments",
+          "confidence": 0.94,
+          "reasoning": "The candidate describes the same inverted conditional for slug assignment tied to IS_TEAM_BILLING_ENABLED, and notes the resulting behavior: slug set when billing enabled, missing slug when disabled, and both slug and requestedSlug set when enabled. This matches the golden issue semantics."
+        }
+      ],
+      "false_positives": [
+        {
+          "candidate": "Google Calendar createEvent: patch call uses calendarId: selectedCalendar without the same fallback (selectedCalendar || \"primary\") used for insert, so selectedCalendar can be undefined and the hangout link update fails when no matching credentialId is found"
+        },
+        {
+          "candidate": "Google Calendar updateEvent: selectedCalendar fallback is broken because when externalCalendarId is falsy it still uses externalCalendarId in the find() predicate, so no match is found and calendarId becomes undefined"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "The optional chaining on mainHostDestinationCalendar?.integration is redundant since you already check mainHostDestinationCalendar in the ternary condition.",
+          "severity": "Low"
+        },
+        {
+          "golden_comment": "The Calendar interface now requires createEvent(event, credentialId), but some implementations (e.g., Lark/Office365) still declare createEvent(event) only\u2014this breaks the interface contract (also applies to other locations in the PR).",
+          "severity": "Low"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 5,
+      "total_golden": 5,
+      "tp": 3,
+      "fp": 2,
+      "fn": 2,
+      "errors_count": 0,
+      "precision": 0.6,
+      "recall": 0.6,
+      "tool": "devin",
+      "repo_name": "cal_dot_com__cal.com__devin__PR10967__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/cal_dot_com__cal.com__devin__PR10967__20260302/pull/1"
     }
   },
   "https://github.com/calcom/cal.com/pull/8087": {
@@ -27053,6 +28924,59 @@
       "tool": "qodo-v2",
       "repo_name": "cal_dot_com__cal.com__qodo-v2__PR8087__20260227",
       "pr_url": "https://github.com/code-review-benchmark/cal_dot_com__cal.com__qodo-v2__PR8087__20260227/pull/1"
+    },
+    "devin": {
+      "skipped": false,
+      "true_positives": [
+        {
+          "golden_comment": "The code uses forEach with async callbacks, which causes asynchronous operations (e.g., calendar/video event deletions, payment refunds) to run concurrently without being awaited. This 'fire-and-forget' behavior leads to unhandled promise rejections, race conditions, and incomplete cleanup, as surrounding try-catch blocks cannot properly handle errors from these unawaited promises. Replace forEach with for...of loops or Promise.all() with map() to ensure proper sequential execution and error handling.",
+          "severity": "Critical",
+          "matched_candidate": "In packages/app-store/vital/lib/reschedule.ts (lines 125-134), using bookingRefsFiltered.forEach(async ...) means the surrounding try/catch does not catch errors from awaited operations inside the callback, leading to unhandled promise rejections",
+          "confidence": 0.9,
+          "reasoning": "The candidate flags the use of forEach with an async callback and notes that surrounding try/catch won\u2019t catch errors from awaited operations inside, causing unhandled promise rejections. This is the core issue described in the golden comment (async forEach not awaited / fire-and-forget). It doesn\u2019t mention fixes or concurrency/race conditions explicitly, but it identifies the same underlying problem."
+        }
+      ],
+      "false_positives": [
+        {
+          "candidate": "In packages/app-store/vital/lib/reschedule.ts, the async forEach makes calendar/video deletions fire-and-forget so sendRequestRescheduleEmail runs before deletions complete (or even start)"
+        },
+        {
+          "candidate": "In packages/app-store/wipemycalother/lib/reschedule.ts (lines 125-134), using forEach(async ...) bypasses the surrounding try/catch so errors inside the async callback are not caught and can become unhandled promise rejections"
+        },
+        {
+          "candidate": "In packages/app-store/wipemycalother/lib/reschedule.ts, the async forEach causes calendar/video deletions to be fire-and-forget and the reschedule email is sent before deletions complete"
+        },
+        {
+          "candidate": "In packages/trpc/server/routers/viewer/bookings.tsx (lines 553-567), using forEach(async ...) makes calendar/video deletions fire-and-forget so sendRequestRescheduleEmail executes before deletions complete"
+        },
+        {
+          "candidate": "In packages/trpc/server/routers/viewer/bookings.tsx, errors thrown during async deletions inside forEach are not handled (no try/catch or .catch), causing unhandled promise rejections"
+        },
+        {
+          "candidate": "In packages/features/bookings/lib/handleCancelBooking.ts (lines 460-470), forEach(async ...) pushes deletion promises into apiDeletes asynchronously, so apiDeletes is still empty when Promise.all(prismaPromises.concat(apiDeletes)) runs at line 652"
+        },
+        {
+          "candidate": "In packages/features/bookings/lib/handleCancelBooking.ts, recurring booking calendar events may not be deleted before the function returns and success is reported because deletion work is still in-flight or not started when Promise.all is awaited"
+        }
+      ],
+      "false_negatives": [
+        {
+          "golden_comment": "Consider adding try-catch around the await to handle import failures gracefully",
+          "severity": "Low"
+        }
+      ],
+      "errors": [],
+      "total_candidates": 8,
+      "total_golden": 2,
+      "tp": 1,
+      "fp": 7,
+      "fn": 1,
+      "errors_count": 0,
+      "precision": 0.125,
+      "recall": 0.5,
+      "tool": "devin",
+      "repo_name": "cal_dot_com__cal.com__devin__PR8087__20260302",
+      "pr_url": "https://github.com/code-review-benchmark/cal_dot_com__cal.com__devin__PR8087__20260302/pull/1"
     }
   }
 }
