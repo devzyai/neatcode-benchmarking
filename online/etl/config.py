@@ -82,6 +82,9 @@ DEFAULT_CHATBOT_USERNAMES = [
     "propel-code-bot[bot]",
     "qodo-code-review[bot]",
     "devin-ai-integration[bot]",
+    "cubic-dev-ai[bot]",
+    "mesa-dot-dev[bot]",
+    "sourcery-ai[bot]",
 ]
 
 
