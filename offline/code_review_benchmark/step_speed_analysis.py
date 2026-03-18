@@ -63,7 +63,6 @@ IGNORE_TOOLS = frozenset(
         "linearb",
         "macroscope",
         "vercel",
-        # "sentry" as a *tool slug* (not the sentry config-prefix)
         "sentry",
         "bito",
         "cubic",   # superseded by cubic-v2
@@ -72,8 +71,7 @@ IGNORE_TOOLS = frozenset(
         "qodo",    # superseded by qodo-v2
         "qodo-v2-2",
         "qodo-v22",
-        "devin",   # cannot determine start timestamp reliably
-        "inspect", # wrong tool name used during setup (renamed)
+        "inspect",
     }
 )
 
@@ -102,6 +100,8 @@ class PRData:
     reviews: list[dict]           # top-level PR review bodies
     review_comments: list[dict]   # inline PR review comments
     timeline_events: list[dict]
+    # Each entry has {createdAt, editor: {login}} — from GraphQL userContentEdits
+    body_edits: list[dict]
 
 
 @dataclass
@@ -160,6 +160,12 @@ def _gh_single(endpoint: str) -> dict:
     return json.loads(result.stdout) if result.stdout.strip() else {}
 
 
+def _gh_graphql(query: str) -> dict:
+    args = ["gh", "api", "graphql", "-f", f"query={query}"]
+    result = _run_gh(args)
+    return json.loads(result.stdout) if result.stdout.strip() else {}
+
+
 def _parse_dt(s: str | None) -> datetime | None:
     if not s:
         return None
@@ -213,7 +219,7 @@ def _all_comments(pr_data: PRData) -> list[Comment]:
     return comments
 
 
-def fetch_pr_data(org: str, repo: str) -> PRData:
+def fetch_pr_data(org: str, repo: str, tool: str = "") -> PRData:
     """Fetch all data needed for timing analysis for PR #1 of a forked repo."""
     pr_info = _gh_single(f"/repos/{org}/{repo}/pulls/1")
     issue_comments = _gh_paginated(f"/repos/{org}/{repo}/issues/1/comments")
@@ -224,6 +230,9 @@ def fetch_pr_data(org: str, repo: str) -> PRData:
         f"/repos/{org}/{repo}/issues/1/timeline",
         extra_headers=["Accept: application/vnd.github.mockingbird-preview+json"],
     )
+    # userContentEdits is only needed for Devin — the GraphQL call is expensive
+    # so we skip it for all other tools.
+    body_edits = _fetch_body_edits(org, repo) if tool == "devin" else []
     return PRData(
         repo=repo,
         pr_url=pr_info.get("html_url", ""),
@@ -233,7 +242,35 @@ def fetch_pr_data(org: str, repo: str) -> PRData:
         reviews=reviews,
         review_comments=review_comments,
         timeline_events=timeline_events,
+        body_edits=body_edits,
     )
+
+
+def _fetch_body_edits(org: str, repo: str) -> list[dict]:
+    """Return PR body edit history via GraphQL userContentEdits."""
+    query = """
+    {
+      repository(owner: "%s", name: "%s") {
+        pullRequest(number: 1) {
+          userContentEdits(first: 20) {
+            nodes { createdAt editor { login } }
+          }
+        }
+      }
+    }
+    """ % (org, repo)
+    try:
+        data = _gh_graphql(query)
+        nodes = (
+            data.get("data", {})
+            .get("repository", {})
+            .get("pullRequest", {})
+            .get("userContentEdits", {})
+            .get("nodes", [])
+        )
+        return nodes or []
+    except subprocess.CalledProcessError:
+        return []
 
 
 # ── Timing strategies ──────────────────────────────────────────────────────────
@@ -382,11 +419,46 @@ def _kg_timing(pr_data: PRData) -> tuple[datetime | None, datetime | None, str]:
     return start_time, end_time, ""
 
 
+def _devin_timing(pr_data: PRData) -> tuple[datetime | None, datetime | None, str]:
+    """Devin code review.
+
+    Confirmed with Devin team:
+    - Start: Devin edits the PR description to add the "Open in Devin Review"
+             button. The exact timestamp comes from the GraphQL userContentEdits
+             API — we take the earliest edit attributed to the Devin bot.
+    - End:   the last review comment posted by the Devin bot.
+    """
+    # Start: earliest body edit by the Devin bot (via GraphQL userContentEdits)
+    devin_edits = [
+        e for e in pr_data.body_edits
+        if "devin" in (e.get("editor") or {}).get("login", "").lower()
+    ]
+    start_time: datetime | None = None
+    notes = ""
+    if devin_edits:
+        start_time = min((_parse_dt(e["createdAt"]) for e in devin_edits), default=None)
+    if start_time is None:
+        notes = "no Devin body edit found; falling back to PR creation time"
+        start_time = pr_data.pr_created_at
+
+    # End: latest comment by the Devin bot
+    all_comments = _all_comments(pr_data)
+    bot_comments = [c for c in all_comments if c.is_bot and "devin" in c.login.lower()]
+    if not bot_comments:
+        bot_comments = [c for c in all_comments if c.is_bot]
+    if not bot_comments:
+        return start_time, None, f"{notes}; no bot comments found".lstrip("; ")
+
+    end_time = max(c.latest_at for c in bot_comments)
+    return start_time, end_time, notes
+
+
 # Map tool slug → timing strategy function
 _STRATEGY: dict[str, TimingStrategy] = {
     **{tool: _trigger_comment_timing for tool in TRIGGER_COMMENT_TOOLS},
     # Override entelligence — it auto-triggers on PR open, no human comment needed
     "entelligence": _entelligence_timing,
+    "devin": _devin_timing,
     "claude": _claude_timing,
     "claude-code": _claude_code_timing,
     "copilot": _copilot_timing,
@@ -422,7 +494,7 @@ def _should_skip(tool: str) -> bool:
 
 def _process_repo(org: str, repo_name: str, tool: str) -> TimingResult:
     try:
-        pr_data = fetch_pr_data(org, repo_name)
+        pr_data = fetch_pr_data(org, repo_name, tool)
     except Exception as exc:
         return TimingResult(repo=repo_name, pr_url="", start=None, end=None, duration_seconds=None, notes=f"fetch error: {exc}")
 
