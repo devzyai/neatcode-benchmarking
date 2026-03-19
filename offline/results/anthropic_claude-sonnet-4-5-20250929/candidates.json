@@ -969,6 +969,14 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "verifySafeHtml() wraps I/O failures in RuntimeException instead of MojoExecutionException, causing the plugin to crash instead of reporting a normal Maven error when the derived _en.properties file is missing or unreadable",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/keycloak/keycloak/pull/37634": {
@@ -1844,6 +1852,32 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "Adding the abstract method `getShortcut()` to `OAuth2GrantTypeFactory` breaks binary compatibility with existing grant type implementations. When `DefaultTokenContextEncoderProviderFactory.getGrantTypeByShortcut()` calls `factory.getShortcut()` on a provider compiled against the previous interface, the JVM throws `AbstractMethodError` at runtime.",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "The lazy refresh path in `getShortcutByGrantType()` unconditionally overwrites `grantsByShortcuts`/`grantsToShortcuts` when a new grant factory is discovered, bypassing the duplicate-shortcut validation from `postInit()`. If a grant provider deploys post-startup with a shortcut already in use, the old mapping is silently replaced. Tokens previously issued with that shortcut will then decode to the wrong grant type in `getTokenContextFromTokenId()`.",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`isAccessTokenId` returns `false` when the grant shortcut matches, causing `expectCodeToToken` to reject valid access-token IDs. The negation in `items[0].substring(3, 5).equals(expectedGrantShortcut)` is inverted \u2014 it should return `true` when the shortcuts match, not `false`.",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "The constructor validates `grantType` twice but never checks `rawTokenId`. Line 73 calls `Objects.requireNonNull(grantType, \"Null rawTokenId not allowed\")` instead of `Objects.requireNonNull(rawTokenId, \"Null rawTokenId not allowed\")`. This allows `rawTokenId == null` to slip through, which will cause failures when the token id is later encoded or accessed.",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/keycloak/keycloak/pull/38446": {
@@ -2605,6 +2639,26 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "When getCredential returns a federated recovery-code credential that is exhausted, removeStoredCredentialById only removes local stored credentials, not federated ones, leaving the exhausted federated credential in place",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Exhausted federated credentials cause unnecessary CONFIGURE_RECOVERY_AUTHN_CODES required actions on every login",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Future logins continue selecting the exhausted federated credential via getCredential because it was not properly removed",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/keycloak/keycloak/pull/36882": {
@@ -3165,7 +3219,8 @@
         "line": null,
         "source": "extracted"
       }
-    ]
+    ],
+    "macroscope": []
   },
   "https://github.com/keycloak/keycloak/pull/36880": {
     "claude": [
@@ -3931,6 +3986,44 @@
       },
       {
         "text": "The private method getEvaluationContext(ClientModel, AccessToken) in ClientPermissionsV2 is defined but never called anywhere in the class, making it unreachable dead code",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "macroscope": [
+      {
+        "text": "`canManage(ClientModel client)` only checks the legacy `MANAGE_CLIENTS` role or a resource-specific permission for that client. It does not check the realm-wide fine-grained `manage` permission on the `Clients` resource type, which is checked by the overloaded `canManage()` (no-arg). An admin with only the global V2 `manage` permission will be incorrectly denied when `canConfigure(client)` or others call this method for a specific client.",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`getClientsWithPermission` iterates resources by type `\"Clients\"`, but client-instance resources created via `AdminPermissionsSchema.getOrCreateResource` are stored with no explicit type (defaults to null or the resource server's client ID as type). This causes the iteration at line 138 to miss all per-client resources, so the method returns an incomplete set (often only the aggregate `\"Clients\"` resource or empty) even when client-specific permissions exist.",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`hasPermission(ClientModel, String)` looks up client resources using `resourceServer.getId()` as the owner filter, but client resources are created with `resourceServer.getClientId()` as the owner. The lookup never finds client-specific resources, so per-client permissions are silently ignored and only global \"all clients\" permissions take effect.",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`canView()` returns `false` for admins who have only the all-clients `manage` permission, breaking realm-wide client visibility. The `manage` scope should subsume `view` (as it does for legacy roles via `canViewClientDefault()` and for `ClientScopeModel` checks on line 121), but the current implementation only checks `canViewClientDefault()` and the `view` scope.",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "When `getOrCreateResource` creates a client resource, it sets `name` to `client.getId()` but never calls `setDisplayName`. Later, `getResourceName` only special-cases `Users` and otherwise returns `resource.getDisplayName()`, which returns `null` for client resources. This causes client permission listings to show `null` instead of a human-readable name. The type resource case is also missing \u2014 unlike `Users` which returns `\"All users\"`, `Clients` falls through to `getDisplayName()` and returns `null`.",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`hasGrantedPermission()` only evaluates the passed `resource`, so `getClientsWithPermission()` misses permissions granted through the shared \"all clients\" resource. When an admin has `scope` only via the type-level resource (not client-specific), the method returns an empty set even though `canView(client)` / `canManage(client)` would succeed for those clients.",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -4803,6 +4896,32 @@
       },
       {
         "text": "In GroupResourceTypeEvaluationTest.onBefore(), the Response is closed by the try-with-resources block and then ApiUtil.handleCreatedResponse(response) is called which also closes the response, resulting in a double-close",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "macroscope": [
+      {
+        "text": "Renaming `getGroupsWithViewPermission()` to `getGroupIdsWithViewPermission()` is a binary-incompatible breaking change. Existing implementations of `GroupPermissionEvaluator` will fail with `AbstractMethodError` at runtime, and external callers compiled against the old method name will fail with `NoSuchMethodError`",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`canManage()` grants manage access when the caller only has the `view` scope for groups. The method passes both `AdminPermissionsSchema.VIEW` and `AdminPermissionsSchema.MANAGE` to `hasPermission(...)`, so a policy allowing only `view` will make `canManage()` return `true`, breaking the intended separation between view and manage permissions",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`getGroupIdsWithViewPermission()` uses `groupResource.getId()` (the authorization resource id) instead of the realm group id. Passing the resource id causes `hasPermission()` to miss per-group resources, fall back to the \"all groups\" resource, and the returned set contains authorization resource ids instead of realm group ids",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Removing the `canViewGlobal` short-circuit causes `getSubGroups` to filter out visible children when the caller has only schema-level `Groups` `view`/`manage` permission. A caller with global group-view permission can pass `requireView(group)` for the parent, but `auth.groups().canView(child)` returns `false` for each child, causing the endpoint to return an empty list instead of the visible children",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -5704,6 +5823,44 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "readInteger() calls readLength() and passes result to read(int length), but readLength() returns -1 for indefinite-length encoding, causing NegativeArraySizeException instead of IOException",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "readInteger() only checks low 5 bits for tag number, accepting context-specific, application, or private tags with tag number 2 as valid INTEGERs instead of validating universal tag class",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "readSequence() silently ignores trailing bytes in input after consuming declared sequence length instead of rejecting malformed input with trailing garbage",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "getPemUtils() unconditionally throws UnsupportedOperationException, causing runtime crashes for any caller attempting PEM operations with AuthzClientCryptoProvider",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "readInteger() throws unchecked NumberFormatException when ASN.1 INTEGER has length 0, turning expected IOException into unexpected runtime exception",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "getBouncyCastleProvider() returns provider for KeyStore.getDefaultType() (typically SUN/SUNJSSE) instead of actual Bouncy Castle provider, breaking callers expecting BC-only algorithms",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/keycloak/keycloak/pull/40940": {
@@ -6476,6 +6633,20 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "getSubGroupsCount() returns null when backing group doesn't exist, inconsistent with other GroupAdapter methods (isUpdated, getDelegateForUpdate) that throw IllegalStateException for missing entities",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Test spawns reader thread but never calls join() before asserting caughtExceptions is empty, allowing race condition where exceptions thrown after assertion are missed",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/ai-code-review-evaluation/keycloak-greptile/pull/1": {
@@ -7178,6 +7349,20 @@
       },
       {
         "text": "The isConditionalPasskeysEnabled(UserModel user) method requires user != null to enable passkeys, but the original code checked user == null for the conditional UI scenario, inverting the logic and breaking username-less login where no user is yet selected",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "macroscope": [
+      {
+        "text": "isConditionalPasskeysEnabled() returns false when user == null, but conditional passkey UI is needed on initial login screen before user identification. This causes webauthnAuth.fillContextForm(context) to never execute for anonymous logins, omitting WebAuthn conditional UI attributes and breaking the passkey flow for the primary use case",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "fillContextForm() in WebAuthnAuthenticator.java:101 uses shouldShowWebAuthnAuthenticators(context) to decide if user is identified, breaking subclasses like WebAuthnConditionalUIAuthenticator which override it to return false. This causes IS_USER_IDENTIFIED to be set false and skips building ALLOWED_AUTHENTICATORS, starting an identifier-less WebAuthn ceremony instead of user-specific one, preventing users with non-resident credentials from authenticating",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -7997,6 +8182,26 @@
       },
       {
         "text": "Metric tag key inconsistency: spans.buffer.flusher.wait_produce uses 'shards' (plural) while other metrics use 'shard' (singular)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "macroscope": [
+      {
+        "text": "time.sleep(0.1) on line 62 of process/test_consumer.py does nothing because time.sleep was monkeypatched to a no-op on line 15, making the test rely on coincidental timing instead of the intended wait",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Metric tag key inconsistency in process/flusher.py line 199 uses 'shards' (plural) while lines 185 and 192-196 use 'shard' (singular), making metrics harder to query and correlate",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Restart limit check in process/flusher.py line 247 uses '>' instead of '>=' allowing 11 restarts when MAX_PROCESS_RESTARTS = 10, exceeding the intended maximum by one",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -9341,6 +9546,38 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "RightMask uses 'transparent' (rgba(0, 0, 0, 0)) when transparentMask is true, causing gradient to interpolate through black on dark mode backgrounds and producing visible color banding. Should use Color(p.theme.background).alpha(0).rgb().string() like LeftMask does",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "TableWidgetVisualization receives hardcoded empty values (columns: [], data: []) instead of actual result.data and result.meta when use-table-widget-visualization feature flag is enabled, causing table to render with no rows or columns",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Object.keys(tableData?.meta.fields) throws TypeError when tableData is nullish because Object.keys(undefined) is invalid. Missing optional chaining and fallback (should be tableData?.meta?.fields ?? {})",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "useTopEvents function returns TOP_EVENTS_LIMIT even with multiple y-axes, contradicting the comment stating top events are only supported when there are no multiple y-axes. The visualizes.some(visualize => visualize.yAxes.length > 1) check was removed",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "analytics.record('preprod_artifact.api.assemble') executes before feature flag check, recording analytics events even when feature is disabled and endpoint returns 404. Event is recorded for rejected requests, not just successful assemblies",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/1": {
@@ -10456,6 +10693,20 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "Accessing `organization_context.member.has_global_access` at line 71 in endpoints/organization_auditlogs.py throws `AttributeError` when `organization_context.member` is `None`, which happens when the user has no membership with the organization",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "When `enable_advanced_features=True` and `cursor.offset < 0`, line 882 in api/paginator.py executes `queryset[start_offset:stop]` with a negative `start_offset`, causing Django to raise `AssertionError: Negative indexing is not supported`",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/grafana/grafana/pull/97529": {
@@ -11144,6 +11395,26 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "Moving `b.cacheMu.Lock()` to after index creation allows concurrent `BuildIndex` calls for the same `NamespacedResource` key, which can cause bleve.New() to fail or corrupt the index when multiple goroutines use the same filesystem path",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "For memory-only indexes, concurrent BuildIndex calls can cause the second `b.cache[key] = idx` to silently overwrite the first index without closing it, leaking resources",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "When `s.blob.PutResourceBlob` returns `(nil, err)`, the code attempts `rsp.Error = AsErrorResult(err)` on a nil `rsp`, causing a panic",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/getsentry/sentry/pull/80168": {
@@ -11827,7 +12098,8 @@
         "line": null,
         "source": "extracted"
       }
-    ]
+    ],
+    "macroscope": []
   },
   "https://github.com/getsentry/sentry/pull/80528": {
     "gemini": [
@@ -12288,6 +12560,14 @@
     "qodo-extended-summary": [
       {
         "text": "In get_monitor_environment_context, line 160 creates a local config copy and line 162 modifies it to set schedule_type to its display value, but line 168 returns the original monitor_environment.monitor.config instead of the local config variable, silently discarding the schedule_type display transformation",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "macroscope": [
+      {
+        "text": "get_monitor_environment_context returns the original unmodified monitor_environment.monitor.config instead of the modified config copy, causing the returned config to contain raw integer values rather than human-readable display names for schedule_type",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -12843,6 +13123,14 @@
     "qodo-extended-summary": [
       {
         "text": "AssignmentSource.queued is set to timezone.now() at class definition time, causing all instances created without an explicit queued value to share the same timestamp instead of having per-instance timestamps",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "macroscope": [
+      {
+        "text": "Default value `queued: datetime = timezone.now()` in AssignmentSource dataclass is evaluated at class definition time, causing all instances to share the same timestamp instead of getting a fresh timestamp per instance",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -13580,6 +13868,20 @@
       },
       {
         "text": "join() method delegates to close(), causing queue_pool.shutdown() to be called twice when arroyo calls both methods in sequence",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "macroscope": [
+      {
+        "text": "The assertion `assert stats[\"total_items\"] > 0` at line 200 in consumers/test_queue_consumer.py:197 is race-prone: worker threads may process all 10 items before `get_stats()` is called, causing the assertion to fail",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "The `create_thread_queue_parallel_worker` method reuses the same `self.queue_pool` instance across multiple calls to `create_with_partitions`. When Arroyo rebalances partitions and creates a new strategy instance, the previous strategy's `close()` has already called `self.queue_pool.shutdown()`, causing subsequent `FixedQueuePool.submit()` calls to raise an exception on the shutdown queue",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -14803,6 +15105,20 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "Accessing `organization_context.member.has_global_access` on line 71 raises `AttributeError` when `organization_context.member` is `None`. When `request.user.is_superuser` is `False`, the short-circuit evaluation proceeds to `organization_context.member.has_global_access` and crashes. Missing null check for `organization_context.member` before accessing `.has_global_access`.",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "When `cursor.is_prev` is `True`, `start_offset` is set to `offset` without clamping to zero, allowing negative values. Django QuerySets do not support negative indexing, so `queryset[start_offset:stop]` raises `AssertionError: Negative indexing is not supported.`",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/3": {
@@ -15828,6 +16144,20 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "invalidate_upsampling_cache computes cache key using Python's hash() which is randomized per-process since Python 3.3, causing cache deletion to silently fail when called from a different process than the one that set the cache",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "_get_event_stats uses dataset (outer closure variable) instead of scoped_dataset (function parameter) in upsampling eligibility check at line 220-221, causing incorrect upsampling decisions when called with different datasets",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/grafana/grafana/pull/103633": {
@@ -16593,6 +16923,14 @@
       },
       {
         "text": "Any error from getCachedIdentityPermissions (including real DB errors from GetUserIdentifiers) is silently treated as a cache miss and falls through to getIdentityPermissions, which calls GetUserIdentifiers again, doubling DB load during failures without logging the error",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "macroscope": [
+      {
+        "text": "Cache key in userPermDenialCacheKey uses underscores as delimiters, but name and parent parameters can contain underscores, causing cache collisions where different input combinations produce identical keys (e.g., name='foo_bar' parent='baz' collides with name='foo' parent='bar_baz')",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -17427,6 +17765,20 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "Test `test_installation_not_found` at github/test_integration.py:392 passes for the wrong reason - it uses incorrect state value `ddd023d87a913d5226e2a882c4c4cc05` instead of `9cae5e88803f35ed7970fc131e6e65d3`, causing assertion to pass due to state validation failure rather than testing the intended 404 installation-not-found behavior",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Accessing `integration.metadata[\"sender\"][\"login\"]` at github/integration.py:503 raises KeyError when Integration was created without a \"sender\" key, since build_integration only adds \"sender\" conditionally (lines 376-378)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/keycloak/keycloak/pull/32918": {
@@ -17951,6 +18303,14 @@
       },
       {
         "text": "remove() method unconditionally calls idpDelegate.getByAlias(alias) database query even when IDP is available in cache, causing unnecessary DB round-trip when cached model could be reused",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "macroscope": [
+      {
+        "text": "Cleanup callback on line 381 passes literal string \"alias\" to get() instead of actual provider alias (\"idp-alias-\" + i), causing cleanup to look up non-existent provider and leak all 20 created identity providers into subsequent tests",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -18671,6 +19031,14 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "enableSqlExpressions function always returns false regardless of FlagSqlExpressions state due to inverted logic - when flag is enabled, !h.features.IsEnabledGlobally(...) evaluates to false causing return false at line 199; when flag is disabled, the negation makes enabled true but the if block at line 197 also returns false, resulting in SQL expressions always being rejected",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/grafana/grafana/pull/90939": {
@@ -19112,6 +19480,20 @@
       },
       {
         "text": "Write lock held during I/O: GetWebAssets holds the global write lock while performing file/network I/O and JSON decoding, blocking all concurrent callers until the slow operation completes. On slow disks/network or error conditions, this can serialize and stall many HTTP requests that need assets.",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "macroscope": [
+      {
+        "text": "After acquiring the write lock in GetWebAssets, the code does not re-check whether entryPointAssetsCache was populated by another goroutine, allowing multiple goroutines to sequentially read the manifest file and overwrite the cache",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "When readWebAssetsFromFile or cfg.GetContentDeliveryURL returns an error, result is nil and line 69 overwrites a valid cached value with nil, causing subsequent callers to receive nil or retry unnecessarily",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -20022,6 +20404,14 @@
       },
       {
         "text": "Cleanup loop terminates prematurely if a batch deletion yields 0 affected rows due to concurrent deletions, leaving remaining annotations uncleaned until the next job run",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "macroscope": [
+      {
+        "text": "r.log.Error is used for normal operational logging at lines 534, 537, 554, and 557, causing non-error messages like 'Annotations to clean by time' to appear in error logs during every cleanup cycle",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -21274,6 +21664,26 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "Line 106: `d.recordStorageDuration` uses `name` as the third argument instead of `options.Kind`, causing metrics to be recorded with incorrect labels when the delete succeeds (line 103 correctly uses `options.Kind`)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Line 97: `klog.NewContext(ctx, d.Log)` uses the base logger instead of the enriched `log` variable created on line 96, preventing downstream code from accessing enriched log context with name, kind, and method values",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Line 45: When `d.Storage.Create` returns an error, `d.recordLegacyDuration` is called instead of `d.recordStorageDuration`, causing storage errors to be recorded as legacy duration metrics",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/grafana/grafana/pull/106778": {
@@ -22400,6 +22810,20 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "The `grafana` case in the `.map()` render (lines 156-163) omits the `key` prop on `GrafanaRuleListItem`, while the `datasource` and default cases both include `key={key}`. This causes React to use index-based keys, leading to reconciliation issues when rules are added, removed, or reordered\u2014potentially preserving stale state in the wrong components.",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "The `DeletePermanently` action at line 328 uses `isAlertingRule` (which only matches alerting rules) instead of checking for any Grafana-managed rule. This causes the action to be incorrectly marked as unsupported for Grafana recording rules, even though they should also be permanently deletable.",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/grafana/grafana/pull/107534": {
@@ -22929,7 +23353,8 @@
         "line": null,
         "source": "extracted"
       }
-    ]
+    ],
+    "macroscope": []
   },
   "https://github.com/grafana/grafana/pull/79265": {
     "gemini": [
@@ -24024,6 +24449,14 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "When CreateOrUpdateDevice returns ErrDeviceLimitReached, the local cache entry set at line 88 remains even though the device was not stored. On the next request with the same device ID (within the 29-minute TTL), the cache hit at line 83 returns nil without checking the database, allowing the request to succeed and bypassing the device limit enforcement.",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/9": {
@@ -24737,7 +25170,8 @@
         "line": null,
         "source": "extracted"
       }
-    ]
+    ],
+    "macroscope": []
   },
   "https://github.com/grafana/grafana/pull/76186": {
     "gemini": [
@@ -25396,6 +25830,14 @@
       },
       {
         "text": "traceID field silently dropped from logs - the PR removes the traceID field from the 'Plugin Request Completed' log line. The old logRequest explicitly extracted the trace ID via tracing.TraceIDFromContext and appended it to logParams, but this was removed in the refactor and the new ContextualLoggerMiddleware.instrumentContext does not add it either, breaking trace-to-log correlation",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "macroscope": [
+      {
+        "text": "TestLogger.FromContext returns a new *TestLogger instance instead of returning the receiver, causing logs written through the returned logger to be recorded on an ephemeral instance that gets discarded, making it impossible for tests to verify captured logs",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -26903,6 +27345,50 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "In `admin/embeddable_hosts_controller.rb:9`, the `update` method doesn't check if `EmbeddableHost.where(id: params[:id]).first` returns `nil`. When the ID doesn't exist, `nil` is passed to `save_host`, causing `NoMethodError` at line 23 when `host.host = ...` is called on `nil`",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In `db/migrate/20150818190757_create_embeddable_hosts.rb:15`, `NoMethodError` occurs when `uncategorized_category_id` setting doesn't exist. If the site_setting is missing, `execute(...)[0]` returns `nil`, and accessing `['value']` on `nil` raises an error",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In `spec/fabricators/embeddable_host_fabricator.rb:25`, `transients[:group].id` raises `NoMethodError: undefined method 'id' for nil:NilClass` when `:private_category` is fabricated without explicitly passing a `:group` transient, since the transient has no default value",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In `models/embeddable_host.rb:11`, `record_for_host` returns `false` for bare hostnames like `example.com` because `URI(host).host` returns `nil` when no scheme is present. The method doesn't handle inputs without schemes",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In `models/embeddable_host.rb:17`, the SQL query in `record_for_host` compares `lower(host)` against the parameter `host` without downcasing it. When `uri.host` contains uppercase letters, the lookup fails",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In `admin/embedding_controller.rb:9`, the `update` action ignores all parameters and returns the same static response as `show`, so callers receive a 200 success even though no data is modified",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In `migrate/20150818190757_create_embeddable_hosts.rb:25`, the migration interpolates `h` directly into the SQL string without escaping. A host value containing a single quote causes SQL syntax error and migration failure",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/7": {
@@ -27905,6 +28391,14 @@
       },
       {
         "text": "Group member name dimmed in desktop/user.scss and mobile/user.scss: .group-member-info .name changed to 50%/50% color scheme instead of 30%/70%, making names visually indistinguishable from titles",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "macroscope": [
+      {
+        "text": "The `dark-light-choose` call for `.topic-meta-data h5 a` incorrectly uses `lightness: 70%` for the light theme instead of the original `30%`, making links in embedded posts significantly lighter and less visible in light themes",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -29150,6 +29644,32 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "admin/groups_controller.rb:71 - params.require(:usernames) can return an Array when submitted as usernames[]=foo&usernames[]=bar, but code calls .split(\",\") on it, raising NoMethodError: undefined method 'split' for Array",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "group/members.hbs:6 - Template iterates over members via {{#each m in members}}, but with auto-generated controller members resolves to undefined, causing empty list even when model.members is populated",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "models/group.js:20 - When name is empty, findMembers returns undefined instead of a promise, causing TypeError for callers that chain .then()",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "admin/groups_controller_spec.rb:115 - Test uses xhr :put for :remove_member action while line 125 uses xhr :delete for same action, causing line 115 to likely pass due to 404 routing error rather than intended 422 validation",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/3": {
@@ -29936,6 +30456,20 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "BlockedEmail.should_block?(email) has a race condition where concurrent requests can lose match_count increments due to non-atomic read-modify-write pattern",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Email validator regex @(#{domains}) lacks end-of-string anchor, allowing malicious subdomains like user@allowed.com.malicious.org to pass whitelist validation",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/5": {
@@ -30695,7 +31229,8 @@
         "line": null,
         "source": "extracted"
       }
-    ]
+    ],
+    "macroscope": []
   },
   "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/6": {
     "gemini": [
@@ -31457,6 +31992,14 @@
       },
       {
         "text": "URI.path only includes the path component, silently dropping query strings (?foo=bar) and fragments (#hash) from the user's website URL",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "macroscope": [
+      {
+        "text": "Method `include_website_name` on line 153 is missing the trailing `?`, preventing the serializer framework from calling it to determine attribute inclusion, causing `website_name` to always be serialized even when `website` is blank",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -33278,6 +33821,44 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "`import_remote` passes user-controlled `url` directly to `Kernel#open` on line 48 before any validation occurs. A malicious URL like `|ls` causes shell command execution via `open-uri`'s command injection feature. The regex validation on line 11 only runs inside `import`, which is called later on line 52.",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`i.content` is `nil` for RSS items that lack a `<content>` element (many feeds use `<description>` instead), so calling `.scrub` on it raises `NoMethodError: undefined method 'scrub' for nil:NilClass` and crashes the job.",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "The new `TopicEmbed.import_remote` call drops `created_at: Date.parse(t[:created_at])`, so all imported topics receive the current timestamp instead of preserving the original Disqus thread creation date.",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In `retrieved_recently?`, `$redis.setnx` and `$redis.expire` execute as two separate commands. If the process crashes between them, the key is created without a TTL and persists indefinitely, permanently blocking retrieval for that URL.",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`TopicEmbed.import_remote` at line 148 calls `open(url).read`, which throws unhandled `OpenURI::HTTPError`, `SocketError`, `Timeout::Error`, or `Errno::ECONNREFUSED` when the Disqus URL is inaccessible. This crashes the entire import task mid-operation, leaving partial data imported.",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Adding `force: true` to `create_table` will silently `DROP` the existing `top_topics` table and all its data if the table already exists, then recreate it empty.",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/1": {
@@ -34507,6 +35088,20 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "The second `downsize` method definition on line 149 completely overwrites the first on line 145 because Ruby doesn't support method overloading",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Callers using the 4-argument form `downsize(from, to, max_width, max_height)` will have `max_width` assigned to `dimensions` and `max_height` assigned to `opts`, causing `TypeError: no implicit conversion of Symbol into Integer` when `optimize` evaluates `!!opts[:allow_animation]`",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/2": {
@@ -35445,6 +36040,14 @@
       },
       {
         "text": "When context_posts are present, the notification email template contains %{respond_instructions} both inside the conditional block (line 6) and unconditionally at the bottom (line 19), causing the respond instructions text to appear twice in the rendered email",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "macroscope": [
+      {
+        "text": "TopicUser.find_by on line 105 returns nil when the user has never interacted with the topic, but line 107 calls tu.notification_level without a nil check, causing NoMethodError when the record doesn't exist",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -36585,6 +37188,20 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "fetchAvailabilityAndSetCache updates updatedAt on all calendars under the credential but only fetches availability for the selectedCalendars subset, causing wrong calendars to have their timestamps refreshed (e.g., unwatched calendar's updatedAt is bumped even though its availability wasn't fetched)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "sed -i '' command uses macOS-specific syntax that fails on Linux where sed interprets the empty string as a filename rather than a backup suffix",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/calcom/cal.com/pull/8330": {
@@ -37529,6 +38146,26 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "Line 114 in viewer/slots.ts compares two dayjs objects with === which compares object references rather than time values, causing the zero-length date override check to always return false so slots are never rejected when a date override has identical start and end times",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Line 141-142 in viewer/slots.ts computes both start and end from slotStartTime instead of using slotEndTime for end, so the working hours check validates slot start time twice and never checks if slotEndTime exceeds workingHour.endTime, allowing slots that extend past working hours to incorrectly pass validation",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Line 211 in lib/slots.ts computes startTime/endTime as time-of-day only (0-1439 minutes) when a date override's time crosses midnight after timezone conversion, ignoring the day change and placing slots on the wrong day, unlike getWorkingHours which explicitly handles day overflow",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/calcom/cal.com/pull/14943": {
@@ -38190,6 +38827,14 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "The deletion query's second OR branch (retryCount: { gt: 1 }) lacks a method: WorkflowMethods.SMS filter, causing it to delete all workflow reminders with retryCount > 1 including EMAIL reminders instead of only SMS reminders",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/calcom/cal.com/pull/22345": {
@@ -38828,6 +39473,14 @@
       },
       {
         "text": "Caching tests silently removed: entire 'Caching' describe block (2 tests verifying getAuthorizationConditions() and getFilterConditions() return cached results) was deleted without replacement, while caching logic (cachedAuthConditions/cachedFilterConditions) remains in service with zero test coverage",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "macroscope": [
+      {
+        "text": "When an organization has no child teams, userIdsFromOrg is set to an empty array and the query for org members is skipped entirely, causing personal bookings (isTeamBooking = false) from members who are directly in the org to be missing from org-scope insights",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -40723,6 +41376,92 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "The `if (!accessTokenParsed.success)` check on line 92 in lib/CalendarService.ts:90 is unreachable dead code because `parseRefreshTokenResponse` already throws when parsing fails",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`parseRefreshTokenResponse` returns the full `SafeParseReturnType` wrapper object instead of just the parsed data in lib/CalendarService.ts:97, causing credential storage to contain the wrapper instead of actual token fields",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "When `CALCOM_WEBHOOK_SECRET` is unset in webhook/app-credential.ts:23, the comparison `undefined !== undefined` evaluates to false, bypassing authentication entirely and allowing unauthenticated credential creation/updates",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "After refreshing OAuth token in lib/CalendarService.ts:101, `getClient` creates jsforce.Connection using old `credentialKey` values instead of new `accessTokenParsed.data` values",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`APP_CREDENTIAL_SHARING_ENABLED` in lib/constants.ts:103 returns a string or undefined instead of a boolean, unlike `IS_STRIPE_ENABLED` which uses `!!` coercion",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "If `symmetricDecrypt` throws or returns non-JSON in webhook/app-credential.ts:56, the unhandled exception bubbles up as a 500 with potentially sensitive error details, and empty string fallback is used when encryption key is unset",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`[z.string().toString()]` in oauth/parseRefreshTokenResponse.ts:5 evaluates to a literal string like 'ZodString' instead of a dynamic pattern, causing most token responses to fail validation",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "When `APP_CREDENTIAL_SHARING_ENABLED` is true in oauth/refreshOAuthTokens.ts:7, function returns a raw fetch `Response` object but callers expect a `.data` property with `access_token`, causing 'Cannot read property access_token of undefined' errors",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "The check `if (!parsedToken.success)` at packages/app-store/zoomvideo/lib/VideoApiAdapter.ts:108 is unreachable dead code because `parseRefreshTokenResponse` already throws when parsing fails",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "When credential sharing is enabled in packages/app-store/hubspot/lib/CalendarService.ts:177, code attempts to access `hubspotRefreshToken.expiresIn` and `hubspotRefreshToken.accessToken` on a fetch Response object, causing undefined values and breaking HubSpot API calls",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "When credential sharing is enabled in packages/app-store/larkcalendar/lib/CalendarService.ts:84, code expects full `RefreshTokenResp` structure but credential sync endpoint only returns access token and expiry, causing undefined values for refresh_token",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "When credential sharing is enabled in packages/app-store/webex/lib/VideoApiAdapter.ts:88, response is parsed against `webexRefreshedTokenSchema` which requires fields not present in credential sync endpoint response, causing validation failure",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "When credential sharing is enabled in packages/app-store/zohocrm/lib/CalendarService.ts:217, code accesses `.data` property on fetch Response object without calling `.json()` first, causing token refresh to fail",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "When credential sharing is enabled in packages/app-store/googlecalendar/lib/CalendarService.ts:94, code accesses `res?.data` on fetch Response object without calling `.json()` first, causing undefined token values",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/calcom/cal.com/pull/7232": {
@@ -41955,6 +42694,26 @@
       },
       {
         "text": "The unscheduledReminders query in scheduleEmailReminders.ts fetches reminders with scheduled=false but does NOT exclude reminders with cancelled=true. A reminder that was created but not yet scheduled (e.g., scheduled date is >72 hours away) and then cancelled will be picked up by this query and scheduled via SendGrid, sending an unwanted email.",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "macroscope": [
+      {
+        "text": "In smsReminderManager.ts:177, when twilio.cancelSMS(referenceId) throws, the prisma.workflowReminder.delete call is skipped because both operations share the same try block, leaving orphaned database records",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In emailReminderManager.ts:222, when immediateDelete is true and referenceId exists, the function cancels the scheduled send in SendGrid but returns without deleting or updating the workflowReminder database record, leaving orphaned records",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In scheduleEmailReminders.ts:56, if client.request throws an error for any reminder in the loop, the Promise.all(workflowRemindersToDelete) at line 74 is never executed, leaving the system in an inconsistent state where SendGrid has cancelled the email but the workflowReminder record persists",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -43203,6 +43962,44 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "Blacklist check compares mixed-case guest email against lowercased blacklistedGuestEmails, allowing blacklisted emails with different casing to bypass the filter",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "this.calEvent.attendees[0].name accessed without checking if attendees array is non-empty, causing TypeError when array is empty",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Fallback message t('unable_to_add_guests') is unreachable because template literal always produces truthy string even when err.data?.code is undefined",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "isTeamAdminOrOwner uses && operator instead of ||, requiring users to be both admin AND owner instead of admin OR owner",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "sendAddGuestsEmails sends emails without checking eventTypeDisableHostEmail() or eventTypeDisableAttendeeEmail(), ignoring metadata.disableStandardEmails configuration",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Using array index as React key causes focus jumps and value misplacement when emails are removed from middle of list",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/calcom/cal.com/pull/10600": {
@@ -44426,6 +45223,20 @@
       },
       {
         "text": "EnableTwoFactorModal creates a Blob object URL for backup code download but does not revoke it when the modal is closed/reset, leaving the URL allocated for the lifetime of the page",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "macroscope": [
+      {
+        "text": "Password verification is skipped when credentials.totpCode is provided because the condition 'user.password && !credentials.totpCode' evaluates to false, allowing an attacker to authenticate with only a valid backupCode without knowing the password",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "When req.body.backupCode is a truthy non-string value (e.g., { backupCode: 123 }), calling .replaceAll('-', '') throws TypeError because the check on line 48 only tests truthiness, not that the value is a string",
         "path": null,
         "line": null,
         "source": "extracted"
@@ -45987,6 +46798,38 @@
         "line": null,
         "source": "extracted"
       }
+    ],
+    "macroscope": [
+      {
+        "text": "In handleCancelBooking.ts:449, when cancelling recurring events with multiple calendar references, the inner loop iterates over all user calendar credentials and all updatedBookings for every single reference in the outer loop, causing the same calendar events to be deleted multiple times and triggering duplicate deletion attempts and API errors",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In CalendarService.ts:254, when externalCalendarId is falsy in updateEvent, the fallback searches event.destinationCalendar using cal.externalId === externalCalendarId which only matches calendars with empty/null externalId, causing selectedCalendar to be undefined and the update to fall back to an unintended calendar or fail",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In EventManager.ts:539, updateEvent is called with credential parameter even when credential remains undefined (when not found in calendarCredentials and database lookup returns null or credentialFromDB.app?.slug is falsy), likely causing runtime error or unexpected behavior",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In EventManager.ts:119, when evt.destinationCalendar is empty, mainHostDestinationCalendar becomes undefined but mainHostDestinationCalendar.integration is accessed without checking, causing a runtime crash",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In handleNewBooking.ts:1078, when both eventType.destinationCalendar and organizerUser.destinationCalendar are null/undefined, evt.destinationCalendar?.push(...teamDestinationCalendars) silently does nothing because optional chaining on null returns undefined without calling push, causing team member destination calendars to be lost for COLLECTIVE team events",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
     ]
   },
   "https://github.com/calcom/cal.com/pull/8087": {
@@ -47154,6 +47997,50 @@
       },
       {
         "text": "getCalendarCredentials calls getCalendar(credential) without await, storing a Promise<Calendar|null> in the calendar field instead of Calendar|null, violating the type contract",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ],
+    "macroscope": [
+      {
+        "text": "bookingRefsFiltered.forEach(async (bookingRef) => ...) at lib/reschedule.ts:124 fires async operations without awaiting them, causing fire-and-forget promises",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "try-catch block around forEach at lib/reschedule.ts:124 cannot catch errors from async callbacks because forEach returns immediately",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "sendRequestRescheduleEmail executes before calendar/video deletions complete at lib/reschedule.ts:124",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "async callback inside forEach at packages/app-store/wipemycalother/lib/reschedule.ts:125 causes unhandled promise rejections for calendar?.deleteEvent() or deleteMeeting() errors",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Function may return true on line 151 before calendar/video deletions complete at packages/app-store/wipemycalother/lib/reschedule.ts:125",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "async callback with forEach at packages/trpc/server/routers/viewer/bookings.tsx:553 ignores return values, making calendar event and video meeting deletions fire-and-forget",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "sendRequestRescheduleEmail on line 570 may execute before deletions complete at packages/trpc/server/routers/viewer/bookings.tsx:553",
         "path": null,
         "line": null,
         "source": "extracted"
