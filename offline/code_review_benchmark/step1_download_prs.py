@@ -76,16 +76,6 @@ def parse_repo_name(name: str) -> dict | None:
       New: {config_prefix}__{original_repo}__{tool}__{date}
       Old: {config_prefix}__{original_repo}__{tool}__PR{number}__{date}
     """
-    # New format (no PR number — repo holds multiple PRs)
-    match = re.match(r"^(.+?)__(.+?)__(.+?)__(\d{8})$", name)
-    if match:
-        return {
-            "config_prefix": match.group(1),
-            "original_repo": match.group(2),
-            "tool": match.group(3),
-            "pr_number": None,
-            "date": match.group(4),
-        }
     # Old format (one PR per repo)
     match = re.match(r"^(.+?)__(.+?)__(.+?)__PR(\d+)__(\d+)$", name)
     if match:
@@ -95,6 +85,16 @@ def parse_repo_name(name: str) -> dict | None:
             "tool": match.group(3),
             "pr_number": int(match.group(4)),
             "date": match.group(5),
+        }
+    # New format (no PR number — repo holds multiple PRs)
+    match = re.match(r"^(.+?)__(.+?)__(.+?)__(\d{8})$", name)
+    if match:
+        return {
+            "config_prefix": match.group(1),
+            "original_repo": match.group(2),
+            "tool": match.group(3),
+            "pr_number": None,
+            "date": match.group(4),
         }
     return None
 
@@ -173,7 +173,7 @@ def list_repo_prs(org: str, repo_name: str) -> list[dict]:
     benchmarking repo) and ``original_pr_number`` (extracted from the ``pr-{N}``
     head branch convention used by step0).
     """
-    prs = gh(["api", f"/repos/{org}/{repo_name}/pulls?state=open&per_page=100"])
+    prs = gh(["api", f"/repos/{org}/{repo_name}/pulls?state=all&per_page=100"])
     if not isinstance(prs, list):
         return []
     results = []

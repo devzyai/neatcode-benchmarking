@@ -210,7 +210,7 @@ class GitHubPRForker:
         # Fetch PR head into the cached clone
         print(f"Fetching PR #{pr_number}...")
         result = self.run_git(
-            tmpdir, "fetch", "origin", f"pull/{pr_number}/head:pr-head-{pr_number}"
+            tmpdir, "fetch", "origin", f"+pull/{pr_number}/head:pr-head-{pr_number}"
         )
         if result.returncode != 0:
             raise Exception(f"Fetch failed:\nstdout: {result.stdout}\nstderr: {result.stderr}")

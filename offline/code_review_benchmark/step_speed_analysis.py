@@ -475,16 +475,6 @@ def _parse_repo_name(name: str) -> dict | None:
       New: {config_prefix}__{original_repo}__{tool}__{date}
       Old: {config_prefix}__{original_repo}__{tool}__PR{number}__{date}
     """
-    # New format (no PR number — repo holds multiple PRs)
-    match = re.match(r"^(.+?)__(.+?)__(.+?)__(\d{8})$", name)
-    if match:
-        return {
-            "config_prefix": match.group(1),
-            "original_repo": match.group(2),
-            "tool": match.group(3),
-            "pr_number": None,
-            "date": match.group(4),
-        }
     # Old format (one PR per repo)
     match = re.match(r"^(.+?)__(.+?)__(.+?)__PR(\d+)__(\d+)$", name)
     if match:
@@ -495,6 +485,16 @@ def _parse_repo_name(name: str) -> dict | None:
             "pr_number": int(match.group(4)),
             "date": match.group(5),
         }
+    # New format (no PR number — repo holds multiple PRs)
+    match = re.match(r"^(.+?)__(.+?)__(.+?)__(\d{8})$", name)
+    if match:
+        return {
+            "config_prefix": match.group(1),
+            "original_repo": match.group(2),
+            "tool": match.group(3),
+            "pr_number": None,
+            "date": match.group(4),
+        }
     return None
 
 
@@ -504,7 +504,7 @@ def _should_skip(tool: str) -> bool:
 
 def _list_repo_prs(org: str, repo_name: str) -> list[dict]:
     """List open PRs in a new-format repo, extracting original PR numbers from branch names."""
-    prs = _gh_paginated(f"/repos/{org}/{repo_name}/pulls?state=open&per_page=100")
+    prs = _gh_paginated(f"/repos/{org}/{repo_name}/pulls?state=all&per_page=100")
     results = []
     for pr in prs:
         head_ref = pr.get("head", {}).get("ref", "")
@@ -513,6 +513,7 @@ def _list_repo_prs(org: str, repo_name: str) -> list[dict]:
             results.append({
                 "repo_pr_number": pr["number"],
                 "original_pr_number": int(match.group(1)),
+                "pr_url": pr.get("html_url"),
             })
     return results
 
@@ -628,20 +629,27 @@ def main() -> None:
             existing = json.load(f)
         print(f"Loaded existing results from {args.output}")
 
-    # Build set of (repo, pr_url) pairs that already have a successful result.
-    # We key on pr_url because new-format repos hold multiple PRs.
-    already_done: set[str] = set()
+    # Build sets of successful entries from existing output.
+    # Prefer PR URL for new-format repos (multiple PRs per repo), with repo name
+    # fallback for older outputs.
+    already_done_urls: set[str] = set()
+    already_done_repos: set[str] = set()
     if not args.force:
         for tool_data in existing.values():
             for pr in tool_data.get("per_pr", []):
                 if pr.get("duration_seconds") is not None:
-                    already_done.add(pr.get("pr_url") or pr["repo"])
+                    pr_url = pr.get("pr_url")
+                    if pr_url:
+                        already_done_urls.add(pr_url)
+                    repo_name = pr.get("repo")
+                    if repo_name:
+                        already_done_repos.add(repo_name)
 
     # Build task list: (tool, repo_name, pr_number_in_repo).
     # For old-format repos pr_number_in_repo is always 1; for new-format repos
     # we list the open PRs and expand into one task per PR.
     tool_names: set[str] = set()
-    all_tasks: list[tuple[str, str, int]] = []
+    all_tasks: list[tuple[str, str, int, str | None]] = []
     skipped_count = 0
 
     for entry in all_repos:
@@ -661,23 +669,31 @@ def main() -> None:
 
         if parsed["pr_number"] is not None:
             # Old format: single PR per repo (always PR #1)
-            all_tasks.append((tool, repo_name, 1))
+            all_tasks.append((tool, repo_name, 1, None))
         else:
             # New format: list open PRs in the repo
             try:
                 repo_prs = _list_repo_prs(args.org, repo_name)
-            except Exception:
+            except Exception as exc:
+                print(f"Warning: failed to list PRs for {repo_name}: {exc}", file=sys.stderr)
                 repo_prs = []
             for pr_info in repo_prs:
-                all_tasks.append((tool, repo_name, pr_info["repo_pr_number"]))
+                all_tasks.append((tool, repo_name, pr_info["repo_pr_number"], pr_info.get("pr_url")))
 
-    # Filter out already-done tasks (we'll match by repo + pr_number combo
-    # against existing pr_urls during merge).
-    # For now, keep all tasks and let the merge phase handle dedup.
+    # Incremental skip: drop tasks whose PR URL already has a successful result.
+    filtered_tasks: list[tuple[str, str, int]] = []
+    for tool, repo_name, pr_number, pr_url in all_tasks:
+        if not args.force and (
+            (pr_url and pr_url in already_done_urls) or (not pr_url and repo_name in already_done_repos)
+        ):
+            skipped_count += 1
+            continue
+        filtered_tasks.append((tool, repo_name, pr_number))
+
     print(f"Tools to process: {sorted(tool_names)}")
-    print(f"Total tasks: {len(all_tasks)}")
+    print(f"Skipping {skipped_count} already-successful PRs; fetching {len(filtered_tasks)}")
 
-    if not all_tasks:
+    if not filtered_tasks:
         print("Nothing to process.")
         return
 
@@ -686,9 +702,9 @@ def main() -> None:
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
         future_to_task = {
             executor.submit(_process_repo, args.org, repo, tool, pr_number): (tool, repo)
-            for tool, repo, pr_number in all_tasks
+            for tool, repo, pr_number in filtered_tasks
         }
-        with tqdm(total=len(all_tasks), desc="Fetching PR timelines") as pbar:
+        with tqdm(total=len(filtered_tasks), desc="Fetching PR timelines") as pbar:
             for future in as_completed(future_to_task):
                 tool, repo = future_to_task[future]
                 try:
@@ -703,7 +719,7 @@ def main() -> None:
     for tool, tool_data in existing.items():
         for pr in tool_data.get("per_pr", []):
             pr_url = pr.get("pr_url") or pr["repo"]
-            if pr_url in already_done and pr_url not in new_pr_urls:
+            if pr_url in already_done_urls and pr_url not in new_pr_urls:
                 result = TimingResult(
                     repo=pr["repo"],
                     pr_url=pr.get("pr_url", ""),
