@@ -1,8 +1,8 @@
-# Code Review Bench: Detailed Methodology
+# NeatCode Bench: Detailed Methodology
 
 ## 1. Introduction
 
-Code Review Bench is a living benchmark for measuring how effective base models and code review agents are at code review.
+NeatCode Bench is a living benchmark for measuring how effective base models and code review agents are at code review.
 
 When we say a "living" benchmark, we mean:
 * It is versioned and updated as we learn more about what matters.
@@ -12,9 +12,9 @@ When we say a "living" benchmark, we mean:
 
 Most critiques of benchmarks reduce to Goodhart's Law: when a measure becomes a target, it ceases to be a good measure. Companies optimize for benchmarks. If the benchmark doesn't measure what actually matters, optimization makes products worse along the dimensions that matter while appearing to make them better. The gap between measure and intent is the core problem. Nearly everything in our methodology is an attempt to close it: behavioral validation against real-world data, multiple independent signals that are hard to game in isolation, continuous refresh to prevent overfitting, and adversarial validation that expands our ground truth when tools exceed our ability to measure. If we close this gap sufficiently, optimizing for the benchmark means optimizing for the real thing.
 
-Why code review specifically? Code is already the AI application with the clearest product-market fit, and APIs give software the ability to access most of the real world — making it a likely entry point for important applications beyond coding itself. Within code, review is the verification step in the generation process. Generating correct code is hard (effectively in NP); checking whether code is correct may be easier (effectively in P). Training models via RL requires exactly such a verifier as a reward signal, so understanding code review is a high-leverage way of understanding code generation more broadly. Code review is also safety-adjacent — finding bugs and dangerous code is precisely a security application, and understanding what reward gaming looks like in this real-world setting prepares us for reward gaming in higher-stakes domains. This connects to Martian's broader mission of understanding how models behave and why — the same mission behind our $1M prize for mechanistic interpretability.
+Why code review specifically? Code is already the AI application with the clearest product-market fit, and APIs give software the ability to access most of the real world — making it a likely entry point for important applications beyond coding itself. Within code, review is the verification step in the generation process. Generating correct code is hard (effectively in NP); checking whether code is correct may be easier (effectively in P). Training models via RL requires exactly such a verifier as a reward signal, so understanding code review is a high-leverage way of understanding code generation more broadly. Code review is also safety-adjacent — finding bugs and dangerous code is precisely a security application, and understanding what reward gaming looks like in this real-world setting prepares us for reward gaming in higher-stakes domains. This connects to NeatCode's broader mission of understanding how models behave and why.
 
-Building a high-quality, living benchmark is expensive. Generating sufficient data, maintaining independence, keeping the benchmark current, and improving issues over time all require sustained investment. Martian is well-funded and our business doesn't depend on any particular tool winning. This lets us keep the benchmark up to date, independent, and improvable. We also love collaborating with academia — reach out at research@withmartian.com.
+Building a high-quality, living benchmark is expensive. Generating sufficient data, maintaining independence, keeping the benchmark current, and improving issues over time all require sustained investment. NeatCode is well-funded and our business doesn't depend on any particular tool winning. This lets us keep the benchmark up to date, independent, and improvable.
 
 **Table of Contents**
 
@@ -170,7 +170,7 @@ The judge uses the following prompt:
 
 Matches against the gold set are counted as true positives. Precision and recall are computed from these matches.
 
-The code to reproduce this is available at: https://github.com/withmartian/code_review_benchmark
+The code to reproduce this is available at: https://github.com/devzyai/neatcode-benchmarking
 
 ### Known limitations of the current implementation
 
@@ -351,7 +351,7 @@ This benchmark is useful only if the companies building code review tools trust 
 
 **Structured relevance.** We'll structure updates so they're relevant to the companies involved. If a release highlights a capability one tool does particularly well — say, a new evaluation of security-focused review — that's something worth talking about. Builders are more likely to engage with a benchmark that occasionally showcases their strengths than one that only produces rankings.
 
-**The long-term goal is adoption as a standard.** When companies release new tools or models, they report scores on Code Review Bench — the way SWE-Bench works for code generation or Terminal Bench for agent performance. We get there by making the benchmark credible enough that good scores are worth advertising and the methodology robust enough that builders trust unfavorable results too.
+**The long-term goal is adoption as a standard.** When companies release new tools or models, they report scores on NeatCode Bench — the way SWE-Bench works for code generation or Terminal Bench for agent performance. We get there by making the benchmark credible enough that good scores are worth advertising and the methodology robust enough that builders trust unfavorable results too.
 
 ---
 

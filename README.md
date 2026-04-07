@@ -1,8 +1,7 @@
 <div align="center">
-    <h1>Code Review Bench</h1>
+    <h1>NeatCode Bench</h1>
     <p>
       <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT License"></a>
-      <a href="https://discord.com/invite/kX6s6nV3zT"><img src="https://img.shields.io/badge/discord-join-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
     </p>
   <picture>
     <source
@@ -12,13 +11,13 @@
     />
     <img
       src="./images/light.png"
-      alt="Code Review Benchmark Logo"
+      alt="NeatCode Benchmark Logo"
       width="125" height="125"
     />
   </picture>
 </div>
 
-Open-source [benchmark](https://codereview.withmartian.com) for evaluating AI code review tools — the datasets, the judge, and the pipeline code. Reproduce our results or evaluate your own tool.
+Open-source benchmark for evaluating AI code review tools — the datasets, the judge, and the pipeline code. Reproduce our results or evaluate your own tool.
 
 ## The problem
 
@@ -98,7 +97,7 @@ In both cases, the judge prompt asks "do these describe the same underlying issu
 ```
 ├── offline/                       # Offline benchmark (fixed dataset)
 │   ├── golden_comments/           #   Human-curated issues per repo (5 JSON files)
-│   ├── code_review_benchmark/     #   Pipeline: fork, download, extract, dedup, judge, export
+│   ├── neatcode_benchmark/        #   Pipeline: fork, download, extract, dedup, judge, export
 │   ├── analysis/                  #   Interactive HTML dashboard
 │   ├── tests/                     #   Test suite (no network access required)
 │   └── results/                   #   Evaluation outputs (per judge model)
@@ -125,17 +124,17 @@ uv sync
 cp .env.example .env               # add GitHub token + LLM API key
 
 # Download reviews for all tools
-uv run python -m code_review_benchmark.step1_download_prs --output results/benchmark_data.json
+uv run python -m neatcode_benchmark.step1_download_prs --output results/benchmark_data.json
 
 # Extract individual issues from reviews
-uv run python -m code_review_benchmark.step2_extract_comments
+uv run python -m neatcode_benchmark.step2_extract_comments
 
 # Deduplicate candidates (prevents false positives from inline+summary overlap)
-uv run python -m code_review_benchmark.step2_5_dedup_candidates
+uv run python -m neatcode_benchmark.step2_5_dedup_candidates
 
 # Run the LLM judge (pass dedup groups to avoid penalising duplicate candidates)
-uv run python -m code_review_benchmark.step3_judge_comments \
-  --dedup-groups results/$(MARTIAN_MODEL)/dedup_groups.json
+uv run python -m neatcode_benchmark.step3_judge_comments \
+  --dedup-groups results/$(NEATCODE_MODEL)/dedup_groups.json
 
 # View results
 open analysis/benchmark_dashboard.html
@@ -179,10 +178,9 @@ We welcome contributions — new tools, better golden comments, improved judge p
 If you use this benchmark in your research or product evaluation, please cite:
 
 ```bibtex
-@misc{code_review_benchmark,
-  title   = {Code Review Bench},
-  author  = {Aleksandr Zverianskii and Jacob Clyne and Antía Garcia and Fazl Barez and Shriyash Upadhyay},
-  url     = {https://github.com/withmartian/code-review-benchmark},
+@misc{neatcode_benchmark,
+  title   = {NeatCode Bench},
+  url     = {https://github.com/devzyai/neatcode-benchmarking},
   year    = {2026},
   license = {MIT}
 }
