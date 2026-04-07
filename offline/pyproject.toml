@@ -18,6 +18,7 @@ dev = [
 
 [project.scripts]
 fork-prs = "code_review_benchmark.step0_fork_prs:main"
+orchestrate-forks = "code_review_benchmark.step0_orchestrate_forks:main"
 download-prs = "code_review_benchmark.step1_download_prs:main"
 extract-comments = "code_review_benchmark.step2_extract_comments:main"
 judge-comments = "code_review_benchmark.step3_judge_comments:main"

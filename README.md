@@ -162,7 +162,7 @@ uv run python main.py dashboard
 
 ## Adding a new tool to the offline benchmark
 
-1. Fork the 50 benchmark PRs into a GitHub org where your tool is installed
+1. Fork the benchmark PRs into a GitHub org where your tool is installed (recommended: `uv run orchestrate-forks --org <ORG_NAME> --name <TOOL_NAME> --golden-dir golden_comments`)
 2. Let the tool review each PR
 3. Add the tool name to the download config and run the pipeline
 4. Results appear alongside existing tools in the dashboard

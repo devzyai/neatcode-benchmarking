@@ -95,6 +95,24 @@ uv run python -m code_review_benchmark.step0_fork_prs
 **Repo naming:** `{config}__{original_repo}__{tool}__{date}` (e.g. `sentry__sentry__coderabbit__20260407`).
 Each PR gets unique branches: `base-pr-{N}` (base) and `pr-{N}` (head).
 
+#### Recommended: orchestrated batch run
+
+To fork all 5 benchmark repos once and create 10 concurrent PRs per repo from
+`golden_comments/*.json`, run:
+
+```bash
+uv run orchestrate-forks --org <ORG_NAME> --name <TOOL_NAME> --golden-dir golden_comments
+```
+
+Defaults:
+- `--repos 5`
+- `--prs-per-repo 10`
+- `--workers-per-repo 10`
+
+The command waits for all bootstrap + PR tasks to complete and exits with:
+- `0` when all tasks succeed
+- `1` when any bootstrap/PR task fails
+
 ### 1. Download PR data
 
 Aggregate PR reviews from benchmark repos with golden comments.
