@@ -1,8 +1,8 @@
-# NeatCode Bench: Detailed Methodology
+# NeatCode Benchmarking: Detailed Methodology
 
 ## 1. Introduction
 
-NeatCode Bench is a living benchmark for measuring how effective base models and code review agents are at code review.
+NeatCode Benchmarking is a living benchmark for measuring how effective base models and code review agents are at code review.
 
 When we say a "living" benchmark, we mean:
 * It is versioned and updated as we learn more about what matters.
@@ -351,7 +351,7 @@ This benchmark is useful only if the companies building code review tools trust 
 
 **Structured relevance.** We'll structure updates so they're relevant to the companies involved. If a release highlights a capability one tool does particularly well — say, a new evaluation of security-focused review — that's something worth talking about. Builders are more likely to engage with a benchmark that occasionally showcases their strengths than one that only produces rankings.
 
-**The long-term goal is adoption as a standard.** When companies release new tools or models, they report scores on NeatCode Bench — the way SWE-Bench works for code generation or Terminal Bench for agent performance. We get there by making the benchmark credible enough that good scores are worth advertising and the methodology robust enough that builders trust unfavorable results too.
+**The long-term goal is adoption as a standard.** When companies release new tools or models, they report scores on NeatCode Benchmarking — the way SWE-Bench works for code generation or Terminal Bench for agent performance. We get there by making the benchmark credible enough that good scores are worth advertising and the methodology robust enough that builders trust unfavorable results too.
 
 ---
 

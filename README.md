@@ -1,16 +1,16 @@
 <div align="center">
-    <h1>NeatCode Bench</h1>
+    <h1>NeatCode Benchmarking</h1>
     <p>
       <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT License"></a>
     </p>
   <picture>
     <source
-      srcset="./images/dark.png"
+      srcset="./images/dark.svg"
       media="(prefers-color-scheme: dark)"
       width="125" height="125"
     />
     <img
-      src="./images/light.png"
+      src="./images/light.svg"
       alt="NeatCode Benchmark Logo"
       width="125" height="125"
     />
@@ -179,7 +179,7 @@ If you use this benchmark in your research or product evaluation, please cite:
 
 ```bibtex
 @misc{neatcode_benchmark,
-  title   = {NeatCode Bench},
+  title   = {NeatCode Benchmarking},
   url     = {https://github.com/devzyai/neatcode-benchmarking},
   year    = {2026},
   license = {MIT}

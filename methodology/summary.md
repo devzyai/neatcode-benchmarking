@@ -1,10 +1,10 @@
-# NeatCode Bench
+# NeatCode Benchmarking
 
 There's no canonical benchmark for code review. Existing benchmarks are small (50–100 PRs), vendor-published (the vendor's tool wins), unrefreshable (stale data, training contamination), and under-defined (no shared notion of what counts as a bug or how to measure precision and recall).
 
 Code review is the verification step for code generation — and verification is the easier side of the problem. This makes it one of the best levers for improving code generation, and one of the most economically valuable uses of AI to measure well.
 
-NeatCode Bench is our attempt to do better.
+NeatCode Benchmarking is our attempt to do better.
 
 This doc lays out our methodology at a high level (~1.5K words), but links to the relevant sections of our [detailed methodology](./full.md) (~9k words).
 
@@ -12,7 +12,7 @@ This doc lays out our methodology at a high level (~1.5K words), but links to th
 
 Most critiques of benchmarks reduce to Goodhart's Law: when a measure becomes a target, it ceases to be a good measure. Companies optimize for benchmarks. If the benchmark doesn't measure what actually matters, optimization makes products worse while appearing to make them better.
 
-The gap between measure and intent is the problem. To close it, you need two things: a way to detect when your benchmark is measuring the wrong thing, and a way to fix it when it is. NeatCode Bench is built to do both.
+The gap between measure and intent is the problem. To close it, you need two things: a way to detect when your benchmark is measuring the wrong thing, and a way to fix it when it is. NeatCode Benchmarking is built to do both.
 
 ## How we're different: offline + online
 
