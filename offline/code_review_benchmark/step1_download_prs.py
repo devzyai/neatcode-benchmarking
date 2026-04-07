@@ -72,20 +72,31 @@ def load_golden_comments(folder: str) -> dict[str, dict]:
 def parse_repo_name(name: str) -> dict | None:
     """Parse benchmark repo name to extract components.
 
-    Pattern: {config_prefix}__{original_repo}__{tool}__PR{number}__{date}
-    Example: sentry__sentry-greptile__claude__PR1__20260127
+    Supports two naming conventions:
+      New: {config_prefix}__{original_repo}__{tool}__{date}
+      Old: {config_prefix}__{original_repo}__{tool}__PR{number}__{date}
     """
-    pattern = r"^(.+?)__(.+?)__(.+?)__PR(\d+)__(\d+)$"
-    match = re.match(pattern, name)
-    if not match:
-        return None
-    return {
-        "config_prefix": match.group(1),
-        "original_repo": match.group(2),
-        "tool": match.group(3),
-        "pr_number": int(match.group(4)),
-        "date": match.group(5),
-    }
+    # New format (no PR number — repo holds multiple PRs)
+    match = re.match(r"^(.+?)__(.+?)__(.+?)__(\d{8})$", name)
+    if match:
+        return {
+            "config_prefix": match.group(1),
+            "original_repo": match.group(2),
+            "tool": match.group(3),
+            "pr_number": None,
+            "date": match.group(4),
+        }
+    # Old format (one PR per repo)
+    match = re.match(r"^(.+?)__(.+?)__(.+?)__PR(\d+)__(\d+)$", name)
+    if match:
+        return {
+            "config_prefix": match.group(1),
+            "original_repo": match.group(2),
+            "tool": match.group(3),
+            "pr_number": int(match.group(4)),
+            "date": match.group(5),
+        }
+    return None
 
 
 def find_golden_url(golden: dict[str, dict], original_repo: str, pr_number: int) -> str | None:
@@ -155,10 +166,32 @@ def fetch_pr_metadata(org: str, repo: str, pr: int) -> dict:
         return {"title": None, "url": None}
 
 
-def fetch_repo_data(org: str, repo_name: str) -> dict:
+def list_repo_prs(org: str, repo_name: str) -> list[dict]:
+    """List open PRs in a new-format repo and extract original PR numbers from branch names.
+
+    Returns a list of dicts with ``repo_pr_number`` (the PR number inside the
+    benchmarking repo) and ``original_pr_number`` (extracted from the ``pr-{N}``
+    head branch convention used by step0).
+    """
+    prs = gh(["api", f"/repos/{org}/{repo_name}/pulls?state=open&per_page=100"])
+    if not isinstance(prs, list):
+        return []
+    results = []
+    for pr in prs:
+        head_ref = pr.get("head", {}).get("ref", "")
+        match = re.match(r"^pr-(\d+)$", head_ref)
+        if match:
+            results.append({
+                "repo_pr_number": pr["number"],
+                "original_pr_number": int(match.group(1)),
+            })
+    return results
+
+
+def fetch_repo_data(org: str, repo_name: str, pr_number: int = 1) -> dict:
     """Fetch both PR metadata and comments for a repo. Returns combined result."""
-    pr_meta = fetch_pr_metadata(org, repo_name, 1)
-    comments = fetch_review_comments(org, repo_name, 1)
+    pr_meta = fetch_pr_metadata(org, repo_name, pr_number)
+    comments = fetch_review_comments(org, repo_name, pr_number)
     return {
         "repo_name": repo_name,
         "pr_meta": pr_meta,
@@ -196,11 +229,28 @@ def main():
     repos = gh(["repo", "list", args.org, "--limit", "5000", "--json", "name"])
     print(f"Found {len(repos)} repos")
 
-    # Build list of repos to process
+    # Build list of repos to process.
+    # Each entry: (repo_name, parsed, golden_url, repo_pr_number)
+    #   repo_pr_number = the PR number inside the benchmark repo to fetch.
     tools_seen = set()
-    to_process = []  # (repo_name, parsed, golden_url)
+    to_process: list[tuple[str, dict, str, int]] = []
     skipped = 0
     errors = []
+
+    def _maybe_enqueue(repo_name: str, parsed: dict, golden_url: str, repo_pr_number: int):
+        nonlocal skipped
+        tool = parsed["tool"]
+        if golden_url in output:
+            existing_reviews = {r["tool"]: r for r in output[golden_url].get("reviews", [])}
+            if tool in existing_reviews:
+                if args.force:
+                    output[golden_url]["reviews"] = [
+                        r for r in output[golden_url]["reviews"] if r["tool"] != tool
+                    ]
+                else:
+                    skipped += 1
+                    return
+        to_process.append((repo_name, parsed, golden_url, repo_pr_number))
 
     for repo_entry in repos:
         repo_name = repo_entry["name"]
@@ -217,24 +267,29 @@ def main():
         if args.test and tool in tools_seen:
             continue
 
-        golden_url = find_golden_url(golden, parsed["original_repo"], parsed["pr_number"])
-        if not golden_url:
-            errors.append(f"No golden match for {repo_name}")
-            continue
-
-        # Check if already processed (incremental)
-        if golden_url in output:
-            existing_reviews = {r["tool"]: r for r in output[golden_url].get("reviews", [])}
-            if tool in existing_reviews:
-                if args.force:
-                    output[golden_url]["reviews"] = [
-                        r for r in output[golden_url]["reviews"] if r["tool"] != tool
-                    ]
-                else:
-                    skipped += 1
+        if parsed["pr_number"] is not None:
+            # Old format: single PR per repo (always PR #1 in the benchmark repo)
+            golden_url = find_golden_url(golden, parsed["original_repo"], parsed["pr_number"])
+            if not golden_url:
+                errors.append(f"No golden match for {repo_name}")
+                continue
+            _maybe_enqueue(repo_name, parsed, golden_url, 1)
+        else:
+            # New format: repo holds multiple PRs — list them
+            try:
+                repo_prs = list_repo_prs(args.org, repo_name)
+            except Exception as e:
+                errors.append(f"Error listing PRs for {repo_name}: {e}")
+                continue
+            for pr_info in repo_prs:
+                orig_num = pr_info["original_pr_number"]
+                golden_url = find_golden_url(golden, parsed["original_repo"], orig_num)
+                if not golden_url:
+                    errors.append(f"No golden match for {repo_name} PR#{orig_num}")
                     continue
+                parsed_with_pr = {**parsed, "pr_number": orig_num}
+                _maybe_enqueue(repo_name, parsed_with_pr, golden_url, pr_info["repo_pr_number"])
 
-        to_process.append((repo_name, parsed, golden_url))
         tools_seen.add(tool)
 
         if args.test and len(tools_seen) >= 3:
@@ -250,8 +305,8 @@ def main():
     processed = 0
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         future_to_info = {
-            executor.submit(fetch_repo_data, args.org, repo_name): (repo_name, parsed, golden_url)
-            for repo_name, parsed, golden_url in to_process
+            executor.submit(fetch_repo_data, args.org, repo_name, repo_pr_number): (repo_name, parsed, golden_url)
+            for repo_name, parsed, golden_url, repo_pr_number in to_process
         }
 
         with tqdm(total=len(to_process), desc="Fetching reviews") as pbar:

@@ -219,20 +219,17 @@ def _all_comments(pr_data: PRData) -> list[Comment]:
     return comments
 
 
-def fetch_pr_data(org: str, repo: str, tool: str = "") -> PRData:
-    """Fetch all data needed for timing analysis for PR #1 of a forked repo."""
-    pr_info = _gh_single(f"/repos/{org}/{repo}/pulls/1")
-    issue_comments = _gh_paginated(f"/repos/{org}/{repo}/issues/1/comments")
-    reviews = _gh_paginated(f"/repos/{org}/{repo}/pulls/1/reviews")
-    review_comments = _gh_paginated(f"/repos/{org}/{repo}/pulls/1/comments")
-    # The timeline API requires this preview header to expose all event types.
+def fetch_pr_data(org: str, repo: str, tool: str = "", pr_number: int = 1) -> PRData:
+    """Fetch all data needed for timing analysis for a PR in a forked repo."""
+    pr_info = _gh_single(f"/repos/{org}/{repo}/pulls/{pr_number}")
+    issue_comments = _gh_paginated(f"/repos/{org}/{repo}/issues/{pr_number}/comments")
+    reviews = _gh_paginated(f"/repos/{org}/{repo}/pulls/{pr_number}/reviews")
+    review_comments = _gh_paginated(f"/repos/{org}/{repo}/pulls/{pr_number}/comments")
     timeline_events = _gh_paginated(
-        f"/repos/{org}/{repo}/issues/1/timeline",
+        f"/repos/{org}/{repo}/issues/{pr_number}/timeline",
         extra_headers=["Accept: application/vnd.github.mockingbird-preview+json"],
     )
-    # userContentEdits is only needed for Devin — the GraphQL call is expensive
-    # so we skip it for all other tools.
-    body_edits = _fetch_body_edits(org, repo) if tool == "devin" else []
+    body_edits = _fetch_body_edits(org, repo, pr_number) if tool == "devin" else []
     return PRData(
         repo=repo,
         pr_url=pr_info.get("html_url", ""),
@@ -246,19 +243,19 @@ def fetch_pr_data(org: str, repo: str, tool: str = "") -> PRData:
     )
 
 
-def _fetch_body_edits(org: str, repo: str) -> list[dict]:
+def _fetch_body_edits(org: str, repo: str, pr_number: int = 1) -> list[dict]:
     """Return PR body edit history via GraphQL userContentEdits."""
     query = """
     {
       repository(owner: "%s", name: "%s") {
-        pullRequest(number: 1) {
+        pullRequest(number: %d) {
           userContentEdits(first: 20) {
             nodes { createdAt editor { login } }
           }
         }
       }
     }
-    """ % (org, repo)
+    """ % (org, repo, pr_number)
     try:
         data = _gh_graphql(query)
         nodes = (
@@ -474,27 +471,55 @@ SUPPORTED_TOOLS = frozenset(_STRATEGY.keys())
 def _parse_repo_name(name: str) -> dict | None:
     """Extract components from a benchmark repo name.
 
-    Pattern: {config_prefix}__{original_repo}__{tool}__PR{number}__{date}
+    Supports two naming conventions:
+      New: {config_prefix}__{original_repo}__{tool}__{date}
+      Old: {config_prefix}__{original_repo}__{tool}__PR{number}__{date}
     """
+    # New format (no PR number — repo holds multiple PRs)
+    match = re.match(r"^(.+?)__(.+?)__(.+?)__(\d{8})$", name)
+    if match:
+        return {
+            "config_prefix": match.group(1),
+            "original_repo": match.group(2),
+            "tool": match.group(3),
+            "pr_number": None,
+            "date": match.group(4),
+        }
+    # Old format (one PR per repo)
     match = re.match(r"^(.+?)__(.+?)__(.+?)__PR(\d+)__(\d+)$", name)
-    if not match:
-        return None
-    return {
-        "config_prefix": match.group(1),
-        "original_repo": match.group(2),
-        "tool": match.group(3),
-        "pr_number": int(match.group(4)),
-        "date": match.group(5),
-    }
+    if match:
+        return {
+            "config_prefix": match.group(1),
+            "original_repo": match.group(2),
+            "tool": match.group(3),
+            "pr_number": int(match.group(4)),
+            "date": match.group(5),
+        }
+    return None
 
 
 def _should_skip(tool: str) -> bool:
     return tool in IGNORE_TOOLS or any(tool.startswith(p) for p in _IGNORE_PREFIXES)
 
 
-def _process_repo(org: str, repo_name: str, tool: str) -> TimingResult:
+def _list_repo_prs(org: str, repo_name: str) -> list[dict]:
+    """List open PRs in a new-format repo, extracting original PR numbers from branch names."""
+    prs = _gh_paginated(f"/repos/{org}/{repo_name}/pulls?state=open&per_page=100")
+    results = []
+    for pr in prs:
+        head_ref = pr.get("head", {}).get("ref", "")
+        match = re.match(r"^pr-(\d+)$", head_ref)
+        if match:
+            results.append({
+                "repo_pr_number": pr["number"],
+                "original_pr_number": int(match.group(1)),
+            })
+    return results
+
+
+def _process_repo(org: str, repo_name: str, tool: str, pr_number: int = 1) -> TimingResult:
     try:
-        pr_data = fetch_pr_data(org, repo_name, tool)
+        pr_data = fetch_pr_data(org, repo_name, tool, pr_number=pr_number)
     except Exception as exc:
         return TimingResult(repo=repo_name, pr_url="", start=None, end=None, duration_seconds=None, notes=f"fetch error: {exc}")
 
@@ -603,16 +628,22 @@ def main() -> None:
             existing = json.load(f)
         print(f"Loaded existing results from {args.output}")
 
-    # Build set of repos that already have a successful result so we can skip them
+    # Build set of (repo, pr_url) pairs that already have a successful result.
+    # We key on pr_url because new-format repos hold multiple PRs.
     already_done: set[str] = set()
     if not args.force:
         for tool_data in existing.values():
             for pr in tool_data.get("per_pr", []):
                 if pr.get("duration_seconds") is not None:
-                    already_done.add(pr["repo"])
+                    already_done.add(pr.get("pr_url") or pr["repo"])
 
-    # Group repos by tool slug, skipping already-successful ones
-    tool_repos: dict[str, list[str]] = {}
+    # Build task list: (tool, repo_name, pr_number_in_repo).
+    # For old-format repos pr_number_in_repo is always 1; for new-format repos
+    # we list the open PRs and expand into one task per PR.
+    tool_names: set[str] = set()
+    all_tasks: list[tuple[str, str, int]] = []
+    skipped_count = 0
+
     for entry in all_repos:
         repo_name = entry["name"]
         parsed = _parse_repo_name(repo_name)
@@ -625,17 +656,26 @@ def main() -> None:
             continue
         if tool not in SUPPORTED_TOOLS:
             continue
-        tool_repos.setdefault(tool, []).append(repo_name)
 
-    skipped_count = sum(1 for repos in tool_repos.values() for r in repos if r in already_done)
-    all_tasks = [
-        (tool, repo)
-        for tool, repos in tool_repos.items()
-        for repo in repos
-        if repo not in already_done
-    ]
-    print(f"Tools to process: {sorted(tool_repos)}")
-    print(f"Skipping {skipped_count} already-successful repos; fetching {len(all_tasks)}")
+        tool_names.add(tool)
+
+        if parsed["pr_number"] is not None:
+            # Old format: single PR per repo (always PR #1)
+            all_tasks.append((tool, repo_name, 1))
+        else:
+            # New format: list open PRs in the repo
+            try:
+                repo_prs = _list_repo_prs(args.org, repo_name)
+            except Exception:
+                repo_prs = []
+            for pr_info in repo_prs:
+                all_tasks.append((tool, repo_name, pr_info["repo_pr_number"]))
+
+    # Filter out already-done tasks (we'll match by repo + pr_number combo
+    # against existing pr_urls during merge).
+    # For now, keep all tasks and let the merge phase handle dedup.
+    print(f"Tools to process: {sorted(tool_names)}")
+    print(f"Total tasks: {len(all_tasks)}")
 
     if not all_tasks:
         print("Nothing to process.")
@@ -645,8 +685,8 @@ def main() -> None:
     results_by_tool: dict[str, list[TimingResult]] = {}
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
         future_to_task = {
-            executor.submit(_process_repo, args.org, repo, tool): (tool, repo)
-            for tool, repo in all_tasks
+            executor.submit(_process_repo, args.org, repo, tool, pr_number): (tool, repo)
+            for tool, repo, pr_number in all_tasks
         }
         with tqdm(total=len(all_tasks), desc="Fetching PR timelines") as pbar:
             for future in as_completed(future_to_task):
@@ -658,10 +698,12 @@ def main() -> None:
                 results_by_tool.setdefault(tool, []).append(result)
                 pbar.update(1)
 
-    # Merge new results with kept existing ones
+    # Merge new results with kept existing ones (avoid duplicates by pr_url)
+    new_pr_urls = {r.pr_url for results in results_by_tool.values() for r in results if r.pr_url}
     for tool, tool_data in existing.items():
         for pr in tool_data.get("per_pr", []):
-            if pr["repo"] in already_done:
+            pr_url = pr.get("pr_url") or pr["repo"]
+            if pr_url in already_done and pr_url not in new_pr_urls:
                 result = TimingResult(
                     repo=pr["repo"],
                     pr_url=pr.get("pr_url", ""),

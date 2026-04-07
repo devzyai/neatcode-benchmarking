@@ -83,15 +83,22 @@ All scripts live in the `code_review_benchmark/` package. Run from the `offline/
 
 ### 0. Fork PRs
 
-Fork benchmark PRs into a GitHub org where the tool under evaluation is installed:
+Fork benchmark PRs into a GitHub org where the tool under evaluation is installed.
+One repo is created per (source repo, tool, date) combination — all PRs from the
+same source repo are pushed as separate branches into that shared repo. Re-running
+the command on the same day reuses the already-created repo.
 
 ```bash
 uv run python -m code_review_benchmark.step0_fork_prs
 ```
 
+**Repo naming:** `{config}__{original_repo}__{tool}__{date}` (e.g. `sentry__sentry__coderabbit__20260407`).
+Each PR gets unique branches: `base-pr-{N}` (base) and `pr-{N}` (head).
+
 ### 1. Download PR data
 
-Aggregate PR reviews from benchmark repos with golden comments:
+Aggregate PR reviews from benchmark repos with golden comments.
+Supports both old-format repos (one PR per repo) and new-format repos (multiple PRs per repo):
 
 ```bash
 # Full run (incremental - skips already downloaded)

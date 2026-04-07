@@ -20,10 +20,12 @@ Example:
 """
 
 import argparse
+import atexit
 from datetime import datetime
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -41,6 +43,9 @@ class GitHubPRForker:
             "Authorization": f"token {token}",
             "Accept": "application/vnd.github.v3+json",
         }
+        self._initialized_repos: set[str] = set()
+        self._clone_cache: dict[tuple[str, str], str] = {}
+        atexit.register(self._cleanup_clones)
         self._verify_auth()
 
     def _request(self, method: str, endpoint: str, **kwargs) -> requests.Response:
@@ -130,13 +135,54 @@ class GitHubPRForker:
         return response.json()
 
     def generate_repo_name(
-        self, original_repo: str, pr_number: int, ai_tool_name: str, config_prefix: str | None = None
+        self, original_repo: str, ai_tool_name: str, config_prefix: str | None = None
     ) -> str:
         date_str = datetime.now().strftime("%Y%m%d")
         tool_slug = re.sub(r"[^a-zA-Z0-9]+", "-", ai_tool_name.lower()).strip("-")[:30]
         if config_prefix:
-            return f"{config_prefix}__{original_repo}__{tool_slug}__PR{pr_number}__{date_str}"
-        return f"{original_repo}__{tool_slug}__PR{pr_number}__{date_str}"
+            return f"{config_prefix}__{original_repo}__{tool_slug}__{date_str}"
+        return f"{original_repo}__{tool_slug}__{date_str}"
+
+    def ensure_repo_exists(self, repo_name: str) -> bool:
+        """Create the repo if it doesn't already exist. Returns True if newly created."""
+        if repo_name in self._initialized_repos:
+            return False
+        if self.repo_exists(repo_name):
+            print(f"  Reusing existing repository {self.org}/{repo_name}")
+            self._initialized_repos.add(repo_name)
+            return False
+        print(f"\nCreating repository {self.org}/{repo_name}...")
+        self.create_repo(repo_name)
+        print("Disabling GitHub Actions...")
+        self.disable_actions(repo_name)
+        self.disable_push_protection(repo_name)
+        time.sleep(2)
+        self._initialized_repos.add(repo_name)
+        return True
+
+    def _get_clone(self, owner: str, repo: str) -> str:
+        """Return path to a cached clone of the source repo, cloning on first access."""
+        key = (owner, repo)
+        if key in self._clone_cache:
+            return self._clone_cache[key]
+
+        clone_url = f"https://github.com/{owner}/{repo}.git"
+        tmpdir = tempfile.mkdtemp(prefix=f"fork-{owner}-{repo}-")
+        print(f"\nCloning {owner}/{repo}...")
+        result = subprocess.run(
+            ["git", "clone", clone_url, tmpdir], capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            shutil.rmtree(tmpdir, ignore_errors=True)
+            raise Exception(f"Clone failed:\nstdout: {result.stdout}\nstderr: {result.stderr}")
+
+        self._clone_cache[key] = tmpdir
+        return tmpdir
+
+    def _cleanup_clones(self):
+        for path in self._clone_cache.values():
+            shutil.rmtree(path, ignore_errors=True)
+        self._clone_cache.clear()
 
     def run_git(self, tmpdir: str, *args) -> subprocess.CompletedProcess:
         return subprocess.run(["git", "-C", tmpdir, *args], capture_output=True, text=True)
@@ -148,75 +194,57 @@ class GitHubPRForker:
         pr = self.get_pr_details(owner, repo, pr_number)
         pr_title = pr["title"]
         pr_body = pr["body"] or ""
-        base_branch = pr["base"]["ref"]
         base_sha = pr["base"]["sha"]
 
         print(f"  Title: {pr_title}")
-        print(f"  Base: {base_branch} ({base_sha[:7]})")
+        print(f"  Base: ({base_sha[:7]})")
 
-        new_repo_name = self.generate_repo_name(repo, pr_number, ai_tool_name, config_prefix)
-        if self.repo_exists(new_repo_name):
-            raise Exception(
-                f"Repository {self.org}/{new_repo_name} already exists. Delete it first."
-            )
+        new_repo_name = self.generate_repo_name(repo, ai_tool_name, config_prefix)
+        newly_created = self.ensure_repo_exists(new_repo_name)
 
+        base_branch_name = f"base-pr-{pr_number}"
         pr_branch_name = f"pr-{pr_number}"
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            clone_url = f"https://github.com/{owner}/{repo}.git"
+        tmpdir = self._get_clone(owner, repo)
 
-            # Clone
-            print(f"\nCloning {owner}/{repo}...")
-            result = subprocess.run(
-                ["git", "clone", clone_url, tmpdir], capture_output=True, text=True
-            )
-            if result.returncode != 0:
-                raise Exception(f"Clone failed:\nstdout: {result.stdout}\nstderr: {result.stderr}")
+        # Fetch PR head into the cached clone
+        print(f"Fetching PR #{pr_number}...")
+        result = self.run_git(
+            tmpdir, "fetch", "origin", f"pull/{pr_number}/head:pr-head-{pr_number}"
+        )
+        if result.returncode != 0:
+            raise Exception(f"Fetch failed:\nstdout: {result.stdout}\nstderr: {result.stderr}")
 
-            # Fetch PR
-            print(f"Fetching PR #{pr_number}...")
-            result = self.run_git(
-                tmpdir, "fetch", "origin", f"pull/{pr_number}/head:pr-head"
-            )
-            if result.returncode != 0:
-                raise Exception(f"Fetch failed:\nstdout: {result.stdout}\nstderr: {result.stderr}")
+        # Create base branch from the PR's base SHA
+        print("Setting up base branch...")
+        self.run_git(tmpdir, "branch", "-D", base_branch_name)
+        self.run_git(tmpdir, "checkout", base_sha)
+        self.run_git(tmpdir, "checkout", "-b", base_branch_name)
 
-            # Checkout base SHA as the base branch
-            print("Setting up base branch...")
-            self.run_git(tmpdir, "checkout", base_sha)
-            self.run_git(tmpdir, "checkout", "-b", base_branch + "-forked")
+        # Create PR branch from the fetched PR head
+        print("Setting up PR branch...")
+        self.run_git(tmpdir, "branch", "-D", pr_branch_name)
+        self.run_git(tmpdir, "checkout", f"pr-head-{pr_number}")
+        self.run_git(tmpdir, "checkout", "-b", pr_branch_name)
 
-            # Checkout PR head as the PR branch
-            print("Setting up PR branch...")
-            self.run_git(tmpdir, "checkout", "pr-head")
-            self.run_git(tmpdir, "checkout", "-b", pr_branch_name)
+        # Ensure the target remote is configured
+        push_url = f"https://x-access-token:{self.token}@github.com/{self.org}/{new_repo_name}.git"
+        self.run_git(tmpdir, "remote", "remove", "target")
+        self.run_git(tmpdir, "remote", "add", "target", push_url)
 
-            # Create remote repo and disable actions
-            print(f"\nCreating repository {self.org}/{new_repo_name}...")
-            self.create_repo(new_repo_name)
-            print("Disabling GitHub Actions...")
-            self.disable_actions(new_repo_name)
-            time.sleep(2)
+        print(f"Pushing {base_branch_name}...")
+        result = self.run_git(tmpdir, "push", "target", base_branch_name)
+        if result.returncode != 0:
+            raise Exception(f"Push base failed:\nstdout: {result.stdout}\nstderr: {result.stderr}")
 
-            # Add remote and push
-            push_url = f"https://x-access-token:{self.token}@github.com/{self.org}/{new_repo_name}.git"
-            self.run_git(tmpdir, "remote", "add", "target", push_url)
+        print(f"Pushing {pr_branch_name}...")
+        result = self.run_git(tmpdir, "push", "target", pr_branch_name)
+        if result.returncode != 0:
+            raise Exception(f"Push PR branch failed:\nstdout: {result.stdout}\nstderr: {result.stderr}")
 
-            print(f"Pushing {base_branch}...")
-            result = self.run_git(
-                tmpdir, "push", "target", f"{base_branch}-forked:{base_branch}"
-            )
-            if result.returncode != 0:
-                raise Exception(f"Push base failed:\nstdout: {result.stdout}\nstderr: {result.stderr}")
-
-            print(f"Pushing {pr_branch_name}...")
-            result = self.run_git(tmpdir, "push", "target", pr_branch_name)
-            if result.returncode != 0:
-                raise Exception(f"Push PR branch failed:\nstdout: {result.stdout}\nstderr: {result.stderr}")
-
-        # Make repo public now that all pushes are done
-        print("Making repository public...")
-        self.make_repo_public(new_repo_name)
+        if newly_created:
+            print("Making repository public...")
+            self.make_repo_public(new_repo_name)
 
         # Create PR
         print("Creating PR...")
@@ -225,7 +253,7 @@ class GitHubPRForker:
             title=pr_title,
             body=pr_body,
             head=pr_branch_name,
-            base=base_branch,
+            base=base_branch_name,
         )
 
         print("\n" + "=" * 60)
