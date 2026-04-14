@@ -1,6 +1,6 @@
 # Offline Code Review Benchmark
 
-Open replication of the code review benchmark used by companies like [Augment](https://www.augmentcode.com/blog/introducing-augment-code-review) and [Greptile](https://www.greptile.com/blog/code-review-benchmark). 50 PRs across 5 major open-source codebases with human-verified golden comments. An LLM judge evaluates each tool: does it find real issues? Does it generate noise?
+Open replication of the code review benchmark used by companies like [Augment](https://www.augmentcode.com/blog/introducing-augment-code-review) and [Greptile](https://www.greptile.com/blog/code-review-benchmark). 40 PRs across four major open-source codebases with human-verified golden comments. An LLM judge evaluates each tool: does it find real issues? Does it generate noise?
 
 ## Evaluated tools
 
@@ -22,7 +22,7 @@ Adding a new tool requires forking the benchmark PRs and collecting the tool's r
 
 ## Methodology
 
-Each of the 50 benchmark PRs has a set of **golden comments**: real issues that a human reviewer identified, with severity labels (Low / Medium / High / Critical). These are the ground truth.
+Each of the 40 benchmark PRs has a set of **golden comments**: real issues that a human reviewer identified, with severity labels (Low / Medium / High / Critical). These are the ground truth.
 
 For each tool, the pipeline:
 1. **Extracts** individual issues from the tool's review comments (line-specific comments become candidates directly; general comments are sent to an LLM to extract distinct issues)
@@ -246,6 +246,24 @@ uv run python analysis/benchmark_dashboard.py
 
 Open `analysis/benchmark_dashboard.html` in a browser to view results. Run this after adding new tools or re-running the judge to update the dashboard.
 
+### Leaderboard and per-repo scores
+
+After you have `results/openai_gpt-5.2/evaluations.json` (and optionally merged NeatCode with `results/gpt-5.2/`):
+
+```bash
+# Micro P/R/F1 for every tool (default path: openai_gpt-5.2)
+uv run python analysis/report_all_tools.py
+
+# Same metrics for one upstream product (keycloak | cal | grafana | sentry)
+uv run python analysis/report_scores_by_repo.py --repo keycloak --tool neatcode
+```
+
+To copy **neatcode** evaluations/candidates from `results/gpt-5.2/` into the merged OpenAI leaderboard file (both dirs must exist):
+
+```bash
+uv run python analysis/merge_neatcode_into_openai_gpt52.py
+```
+
 ### 5. Summary table
 
 Show review counts by tool and repo:
@@ -256,10 +274,10 @@ uv run python -m code_review_benchmark.summary_table
 
 **Example output:**
 ```
-Tool        cal_dot_com  discourse    grafana      keycloak     sentry       Total
-----------------------------------------------------------------------------------
-claude      10           10           10           10           10           50
-coderabbit  10           10           10           10           10           50
+Tool        cal_dot_com  grafana      keycloak     sentry       Total
+----------------------------------------------------------------------
+claude      10           10           10           10           40
+coderabbit  10           10           10           10           40
 ...
 ```
 
@@ -276,6 +294,53 @@ uv run python -m code_review_benchmark.step4_export_by_tool --tool greptile
 ```
 
 **Output:** `results/{tool}_reviews.xlsx`
+
+---
+
+## GitHub Actions
+
+The offline benchmark workflow lives at [`.github/workflows/benchmark-offline.yml`](../.github/workflows/benchmark-offline.yml).
+
+### Benchmark offline (`benchmark-offline.yml`)
+
+**Trigger:** `workflow_dispatch` only (Actions tab → Benchmark offline → Run workflow).
+
+**What it runs:** From the `offline/` directory, optionally step 0 (orchestrate forks), then steps 1 → 2 → 2.5 → 3. Uploads `offline/results/` as a workflow artifact.
+
+**Workflow inputs**
+
+| Input | Meaning |
+|-------|---------|
+| `ref` | Git branch or tag of **this** (`neatcode-benchmarking`) repo to checkout. Use this to run a specific version of the benchmark scripts. Default: `main`. |
+| `benchmark_org` | GitHub organization slug where benchmark fork repos live (e.g. a dedicated eval org). Passed to `--org` for step 0 and step 1. |
+| `tool` | Tool slug matching step 0 `--name` and repo name segments (e.g. `neatcode_staging`). |
+| `run_step0` | If true, runs `step0_orchestrate_forks` first (creates repos and PRs in `benchmark_org`). Long-running; requires a token that can create repositories in that org. |
+| `step1_force` | If true, passes `--force` to step 1 (refetch reviews). |
+| `step1_test` | If true, passes `--test` to step 1 (one repo per tool). |
+| `judge_model` | Optional. If set, overrides `MARTIAN_MODEL` for the judge. If empty, the `MARTIAN_MODEL` repository secret is used. |
+| `limit` | Optional. If non-empty, passed as `--limit` to steps 2 and 3 for smoke runs. |
+
+**Repository secrets (Settings → Secrets and variables → Actions)**
+
+| Secret | Required | Purpose |
+|--------|----------|---------|
+| `BENCHMARK_GH_TOKEN` | Yes | Personal access token (classic or fine-grained) used as `GH_TOKEN` / `GITHUB_TOKEN` for `gh` and step 0. Must be able to **list and read** PRs in `benchmark_org`, and **create repositories** there if you use `run_step0`. The default `GITHUB_TOKEN` in Actions cannot replace this for arbitrary orgs. |
+| `MARTIAN_API_KEY` | Yes | API key for the OpenAI-compatible judge endpoint. |
+| `MARTIAN_MODEL` | Yes (unless you always pass `judge_model`) | Default judge model id (e.g. `openai/gpt-4o-mini`). Same value as in local `.env`. |
+
+Optional: add `MARTIAN_BASE_URL` only if you use a non-default judge endpoint; for a custom base URL you can extend the workflow `env` or rely on local `.env` when running manually.
+
+**PAT permissions (typical)**
+
+- **Step 1 only:** read access to repositories in `benchmark_org` (metadata, pull requests, contents as needed by `gh`).
+- **Step 0 (orchestrate):** additionally **create** repositories (and admin as required by your org policy) in `benchmark_org`.
+
+Scope the token to the **benchmark organization** when using fine-grained PATs.
+
+**Scripts ref vs NeatCode backend**
+
+- The workflow **`ref` / branch** selects which **commit of these benchmark scripts** runs (step 1–3 code, golden files, etc.).
+- It does **not** select which version of **NeatCode** reviews the PRs. Review behavior is determined by the **GitHub App** installation on `benchmark_org` and the **webhook URL** configured for that app (e.g. staging or an experimental deployment). To compare backend changes, deploy the desired build and ensure the benchmark app’s webhook points at it before re-running reviews and step 1 with `step1_force` where appropriate.
 
 ---
 
@@ -298,7 +363,7 @@ uv run python -m code_review_benchmark.step4_export_by_tool --tool greptile
 ]
 ```
 
-Source files: `sentry.json`, `grafana.json`, `keycloak.json`, `discourse.json`, `cal_dot_com.json`
+Source files: `sentry.json`, `grafana.json`, `keycloak.json`, `cal_dot_com.json`
 
 ### benchmark_data.json
 
