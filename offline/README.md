@@ -84,34 +84,62 @@ All scripts live in the `code_review_benchmark/` package. Run from the `offline/
 ### 0. Fork PRs
 
 Fork benchmark PRs into a GitHub org where the tool under evaluation is installed.
-One repo is created per (source repo, tool, date) combination — all PRs from the
-same source repo are pushed as separate branches into that shared repo. Re-running
-the command on the same day reuses the already-created repo.
+One bench repo is created **per golden JSON file** — all PRs from the same file
+(regardless of the upstream `url` host) are pushed as separate branches into that
+shared repo. Re-running on the same day reuses already-created repos.
+
+#### Single-PR CLI
 
 ```bash
-uv run python -m code_review_benchmark.step0_fork_prs
+uv run python -m code_review_benchmark.step0_fork_prs \
+    https://github.com/owner/repo/pull/123 --org <ORG> --name <TOOL>
 ```
 
-**Repo naming:** `{config}__{original_repo}__{tool}__{date}` (e.g. `sentry__sentry__coderabbit__20260407`).
-Each PR gets unique branches: `base-pr-{N}` (base) and `pr-{N}` (head).
-
-#### Recommended: orchestrated batch run
-
-To fork all 5 benchmark repos once and create 10 concurrent PRs per repo from
-`golden_comments/*.json`, run:
+#### Recommended: orchestrated batch run (3-stage pipeline)
 
 ```bash
-uv run orchestrate-forks --org <ORG_NAME> --name <TOOL_NAME> --golden-dir golden_comments
+uv run python -m code_review_benchmark.step0_orchestrate_forks \
+    --org <ORG_NAME> --name <TOOL_NAME> --golden-dir golden_comments
 ```
 
-Defaults:
-- `--repos 5`
-- `--prs-per-repo 10`
-- `--workers-per-repo 10`
+The orchestrator runs three stages:
 
-The command waits for all bootstrap + PR tasks to complete and exits with:
-- `0` when all tasks succeed
-- `1` when any bootstrap/PR task fails
+| Stage | What happens | Concurrency |
+|-------|-------------|-------------|
+| **1. Clone + Bootstrap** | Clones every unique upstream repo referenced by the golden URLs. Creates one bench repo per golden JSON file under your org (private -> disable actions -> make public). | Serial |
+| **2. Prepare** | For each PR URL: fetches the PR head into the cached upstream clone, then pushes base + head branches to the bench repo via **refspec** (`git push <url> SHA:refs/heads/branch`). No `git checkout` — fully parallel-safe. | `--prepare-concurrency` (default 10) |
+| **3. Open PRs** | Calls `POST /repos/{org}/{repo}/pulls` for each successfully prepared PR. | `--pr-open-concurrency` (default 10) |
+
+**Flags:**
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--repos` | 5 | Golden JSON files to process |
+| `--prs-per-repo` | 10 | PR URLs per file |
+| `--prepare-concurrency` | 10 | Parallel fetch+push tasks (stage 2) |
+| `--pr-open-concurrency` | 10 | Parallel GitHub API PR-open calls (stage 3) |
+
+**Examples:**
+
+```bash
+# Default: 5 repos x 10 PRs, 10 parallel prepares, 10 parallel opens
+uv run python -m code_review_benchmark.step0_orchestrate_forks \
+    --org my-org --name coderabbit
+
+# Open all 50 PRs at once after preparing
+uv run python -m code_review_benchmark.step0_orchestrate_forks \
+    --org my-org --name coderabbit --pr-open-concurrency 50
+
+# Faster prepare for many different upstreams
+uv run python -m code_review_benchmark.step0_orchestrate_forks \
+    --org my-org --name coderabbit --prepare-concurrency 20
+```
+
+**Repo naming:** `{golden_stem}__{tool}__{date}` (e.g. `sentry__coderabbit__20260407`).
+Each PR gets unique branches: `base-pr-{owner}-{repo}-{N}` and `pr-{owner}-{repo}-{N}`.
+
+The command exits `0` when all stages succeed, `1` when any task fails.
+The summary prints per-stage failure counts for easy triage.
 
 ### 1. Download PR data
 

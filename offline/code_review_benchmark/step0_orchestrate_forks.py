@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Orchestrate benchmark repo forking and concurrent PR creation.
 
-Behavior:
-- Creates each benchmark target repo once (one per golden_comments JSON file).
-- Creates up to N PRs per repo (default: 10) concurrently.
-- Waits for all PR creations to finish and returns non-zero on failures.
+Three-stage pipeline:
+  Stage 1  Clone unique upstream repos + create benchmark repos (serial).
+  Stage 2  Fetch + refspec-push branches for every PR (parallel, lock-free).
+  Stage 3  Open GitHub PRs via API (parallel, configurable concurrency).
 
 Usage:
     uv run python -m code_review_benchmark.step0_orchestrate_forks \
@@ -19,48 +19,106 @@ from concurrent.futures import as_completed
 import os
 from pathlib import Path
 import sys
-from typing import Any
 
 from code_review_benchmark.step0_fork_prs import GitHubPRForker
+from code_review_benchmark.step0_fork_prs import PreparedMirrorPR
 from code_review_benchmark.step0_fork_prs import _load_pr_urls_from_file
+from code_review_benchmark.step0_fork_prs import load_dotenv
 
 
-def _bootstrap_repo(
-    token: str,
-    org: str,
+# ---------------------------------------------------------------------------
+# Stage 1 helpers
+# ---------------------------------------------------------------------------
+
+def _collect_work_items(
+    forker: GitHubPRForker,
+    selected_files: list[Path],
     tool_name: str,
-    config_prefix: str,
-    sample_pr_url: str,
-) -> str:
-    """Ensure target benchmark repo exists once and is public."""
-    forker = GitHubPRForker(token, org)
-    owner, source_repo, _ = forker.parse_pr_url(sample_pr_url)
-    del owner  # Owner only needed for URL parsing validation.
-    target_repo_name = forker.generate_repo_name(source_repo, tool_name, config_prefix)
-    newly_created = forker.ensure_repo_exists(target_repo_name)
-    if newly_created:
-        print(f"Making repository public: {org}/{target_repo_name}")
-        forker.make_repo_public(target_repo_name)
-    else:
-        print(f"Using existing repository: {org}/{target_repo_name}")
-    return target_repo_name
+    prs_per_repo: int,
+) -> tuple[list[tuple[str, str]], int]:
+    """Scan golden files, bootstrap bench repos, clone upstreams.
+
+    Returns (work_items, bootstrap_failure_count) where each work item is
+    ``(config_prefix, pr_url)``.
+    """
+    work_items: list[tuple[str, str]] = []
+    upstreams_seen: set[tuple[str, str]] = set()
+    bootstrap_failures = 0
+
+    for repo_file in selected_files:
+        config_prefix = repo_file.stem
+        urls = _load_pr_urls_from_file(str(repo_file))
+        urls = urls[:prs_per_repo]
+        if not urls:
+            print(f"\n[{config_prefix}] No PR URLs found, skipping.")
+            continue
+
+        # --- Bootstrap the single bench repo for this golden file ---
+        print(f"\n[{config_prefix}] Bootstrapping target repository...")
+        try:
+            bench_repo = forker.generate_repo_name(tool_name, config_prefix)
+            newly_created = forker.ensure_repo_exists(bench_repo)
+            if newly_created:
+                print(f"  Making repository public: {forker.org}/{bench_repo}")
+                forker.make_repo_public(bench_repo)
+            else:
+                print(f"  Using existing repository: {forker.org}/{bench_repo}")
+            print(f"[{config_prefix}] Target repo ready: {forker.org}/{bench_repo}")
+        except Exception as exc:
+            bootstrap_failures += len(urls)
+            print(f"[{config_prefix}] Bootstrap failed: {exc}", file=sys.stderr)
+            continue
+
+        # --- Collect unique upstreams for cloning ---
+        for url in urls:
+            try:
+                owner, repo, _ = forker.parse_pr_url(url)
+                key = (owner, repo)
+                if key not in upstreams_seen:
+                    upstreams_seen.add(key)
+            except ValueError:
+                pass
+            work_items.append((config_prefix, url))
+
+    # --- Clone all unique upstream repos (serial) ---
+    print(f"\n=== Stage 1: Cloning {len(upstreams_seen)} unique upstream repo(s) ===")
+    for owner, repo in sorted(upstreams_seen):
+        try:
+            forker.clone_upstream(owner, repo)
+        except Exception as exc:
+            print(f"  Clone failed for {owner}/{repo}: {exc}", file=sys.stderr)
+
+    return work_items, bootstrap_failures
 
 
-def _create_pr_task(
-    token: str,
-    org: str,
+# ---------------------------------------------------------------------------
+# Stage 2 / 3 task wrappers
+# ---------------------------------------------------------------------------
+
+def _prepare_task(
+    forker: GitHubPRForker,
     tool_name: str,
     config_prefix: str,
     pr_url: str,
-) -> dict[str, Any]:
-    """Create a single PR in the pre-created benchmark repo."""
-    forker = GitHubPRForker(token, org)
-    return forker.process_pr(pr_url, tool_name, config_prefix)
+) -> PreparedMirrorPR:
+    return forker.prepare_mirror_pr(pr_url, tool_name, config_prefix)
 
+
+def _open_task(
+    forker: GitHubPRForker,
+    prepared: PreparedMirrorPR,
+) -> dict:
+    return forker.open_mirror_pr(prepared)
+
+
+# ---------------------------------------------------------------------------
+# main
+# ---------------------------------------------------------------------------
 
 def main() -> None:
+    load_dotenv()
     parser = argparse.ArgumentParser(
-        description="Create benchmark repos once, then create PRs concurrently."
+        description="Three-stage pipeline: clone, prepare branches, open PRs."
     )
     parser.add_argument("--org", required=True, help="Target GitHub organization")
     parser.add_argument("--name", required=True, help="AI tool slug/name for repo naming")
@@ -87,10 +145,16 @@ def main() -> None:
         help="How many PR URLs per repo file to process (default: 10)",
     )
     parser.add_argument(
-        "--workers-per-repo",
+        "--prepare-concurrency",
         type=int,
         default=10,
-        help="Concurrent PR workers per repo (default: 10)",
+        help="Parallel fetch+push tasks in stage 2 (default: 10)",
+    )
+    parser.add_argument(
+        "--pr-open-concurrency",
+        type=int,
+        default=10,
+        help="Parallel POST /pulls calls in stage 3 (default: 10)",
     )
     args = parser.parse_args()
 
@@ -111,72 +175,86 @@ def main() -> None:
     selected_files = json_files[: args.repos]
     print(f"Processing {len(selected_files)} repo file(s): {[p.name for p in selected_files]}")
 
-    total_success = 0
-    total_failures = 0
+    # ------------------------------------------------------------------
+    # Stage 1: clone upstreams + bootstrap bench repos (serial)
+    # ------------------------------------------------------------------
+    forker = GitHubPRForker(args.token, args.org)
+    work_items, bootstrap_failures = _collect_work_items(
+        forker, selected_files, args.name, args.prs_per_repo
+    )
 
-    for repo_file in selected_files:
-        config_prefix = repo_file.stem
-        urls = _load_pr_urls_from_file(str(repo_file))
-        urls = urls[: args.prs_per_repo]
-        if not urls:
-            print(f"\n[{config_prefix}] No PR URLs found, skipping.")
-            continue
+    if not work_items:
+        print("No work items to process.")
+        sys.exit(1 if bootstrap_failures else 0)
 
-        print(f"\n[{config_prefix}] Bootstrapping target repository...")
-        try:
-            target_repo = _bootstrap_repo(
-                token=args.token,
-                org=args.org,
-                tool_name=args.name,
-                config_prefix=config_prefix,
-                sample_pr_url=urls[0],
-            )
-            print(f"[{config_prefix}] Target repo ready: {args.org}/{target_repo}")
-        except Exception as exc:
-            total_failures += len(urls)
-            print(f"[{config_prefix}] Bootstrap failed: {exc}", file=sys.stderr)
-            continue
+    # ------------------------------------------------------------------
+    # Stage 2: fetch + refspec push (parallel, lock-free)
+    # ------------------------------------------------------------------
+    print(f"\n=== Stage 2: Preparing {len(work_items)} PR(s) "
+          f"with {min(args.prepare_concurrency, len(work_items))} worker(s) ===")
 
-        print(
-            f"[{config_prefix}] Creating {len(urls)} PR(s) with "
-            f"{min(args.workers_per_repo, len(urls))} worker(s)..."
-        )
+    prepared: list[PreparedMirrorPR] = []
+    prepare_failures = 0
+
+    with ThreadPoolExecutor(
+        max_workers=min(args.prepare_concurrency, len(work_items))
+    ) as executor:
         futures = {}
-        with ThreadPoolExecutor(
-            max_workers=min(args.workers_per_repo, len(urls))
-        ) as executor:
-            for pr_url in urls:
-                future = executor.submit(
-                    _create_pr_task,
-                    args.token,
-                    args.org,
-                    args.name,
-                    config_prefix,
-                    pr_url,
-                )
-                futures[future] = pr_url
+        for config_prefix, pr_url in work_items:
+            future = executor.submit(_prepare_task, forker, args.name, config_prefix, pr_url)
+            futures[future] = pr_url
 
-            repo_success = 0
-            repo_failures = 0
-            for future in as_completed(futures):
-                pr_url = futures[future]
-                try:
-                    result = future.result()
-                    repo_success += 1
-                    print(f"[{config_prefix}] OK: {pr_url} -> {result.get('new_pr_url')}")
-                except Exception as exc:
-                    repo_failures += 1
-                    print(f"[{config_prefix}] FAIL: {pr_url} -> {exc}", file=sys.stderr)
+        for future in as_completed(futures):
+            pr_url = futures[future]
+            try:
+                result = future.result()
+                prepared.append(result)
+            except Exception as exc:
+                prepare_failures += 1
+                print(f"  PREPARE FAIL: {pr_url} -> {exc}", file=sys.stderr)
 
-        total_success += repo_success
-        total_failures += repo_failures
-        print(
-            f"[{config_prefix}] Completed: success={repo_success}, failures={repo_failures}"
-        )
+    print(f"\nStage 2 done: {len(prepared)} prepared, {prepare_failures} failed")
 
+    if not prepared:
+        print("No PRs prepared successfully. Nothing to open.")
+        sys.exit(1)
+
+    # ------------------------------------------------------------------
+    # Stage 3: open PRs via API (parallel)
+    # ------------------------------------------------------------------
+    print(f"\n=== Stage 3: Opening {len(prepared)} PR(s) "
+          f"with {min(args.pr_open_concurrency, len(prepared))} worker(s) ===")
+
+    open_success = 0
+    open_failures = 0
+
+    with ThreadPoolExecutor(
+        max_workers=min(args.pr_open_concurrency, len(prepared))
+    ) as executor:
+        futures = {}
+        for item in prepared:
+            future = executor.submit(_open_task, forker, item)
+            futures[future] = item.pr_url
+
+        for future in as_completed(futures):
+            pr_url = futures[future]
+            try:
+                result = future.result()
+                open_success += 1
+                print(f"  OPEN OK: {pr_url} -> {result.get('new_pr_url')}")
+            except Exception as exc:
+                open_failures += 1
+                print(f"  OPEN FAIL: {pr_url} -> {exc}", file=sys.stderr)
+
+    # ------------------------------------------------------------------
+    # Summary
+    # ------------------------------------------------------------------
+    total_failures = bootstrap_failures + prepare_failures + open_failures
     print("\n=== Orchestration Summary ===")
-    print(f"Success: {total_success}")
-    print(f"Failures: {total_failures}")
+    print(f"Prepared : {len(prepared)}/{len(work_items)}")
+    print(f"Opened   : {open_success}/{len(prepared)}")
+    print(f"Failures : {total_failures} "
+          f"(bootstrap={bootstrap_failures}, prepare={prepare_failures}, open={open_failures})")
 
     if total_failures > 0:
         sys.exit(1)
@@ -186,4 +264,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -21,9 +21,11 @@ Example:
 
 import argparse
 import atexit
+from dataclasses import dataclass
 from datetime import datetime
 import json
 import os
+from pathlib import Path
 import re
 import shutil
 import subprocess
@@ -32,6 +34,43 @@ import tempfile
 import time
 
 import requests
+
+
+def _git_branch_fragment(owner: str, repo: str, pr_number: int) -> str:
+    """Unique, git-safe fragment for branch names (same target repo, multiple sources)."""
+    part = re.sub(r"[^a-zA-Z0-9._-]+", "-", f"{owner}-{repo}-{pr_number}".lower())
+    part = re.sub(r"-{2,}", "-", part).strip("-")
+    return (part[:120] if part else "pr") or "pr"
+
+
+def load_dotenv(filepath: str = ".env") -> None:
+    """Load environment variables from a .env file in the current working directory."""
+    env_path = Path(filepath)
+    if not env_path.exists():
+        return
+    with open(env_path) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" in line:
+                key, _, value = line.partition("=")
+                key = key.strip()
+                value = value.strip().strip("'\"")
+                os.environ.setdefault(key, value)
+
+
+@dataclass
+class PreparedMirrorPR:
+    """All data needed to open a PR via the GitHub API (produced by stage 2)."""
+
+    pr_url: str
+    config_prefix: str
+    bench_repo_name: str
+    title: str
+    body: str
+    head_branch: str
+    base_branch: str
 
 
 class GitHubPRForker:
@@ -135,12 +174,24 @@ class GitHubPRForker:
         return response.json()
 
     def generate_repo_name(
-        self, original_repo: str, ai_tool_name: str, config_prefix: str | None = None
+        self,
+        ai_tool_name: str,
+        config_prefix: str | None = None,
+        *,
+        original_repo: str | None = None,
     ) -> str:
+        """Target repo under ``org``.
+
+        With ``config_prefix`` (batch / golden JSON), the name is unique per JSON file
+        so mixed ``url`` sources (e.g. greptile mirrors vs upstream) share one bench repo.
+        Without it, names include ``original_repo`` (single-PR CLI).
+        """
         date_str = datetime.now().strftime("%Y%m%d")
         tool_slug = re.sub(r"[^a-zA-Z0-9]+", "-", ai_tool_name.lower()).strip("-")[:30]
         if config_prefix:
-            return f"{config_prefix}__{original_repo}__{tool_slug}__{date_str}"
+            return f"{config_prefix}__{tool_slug}__{date_str}"
+        if not original_repo:
+            raise ValueError("original_repo is required when config_prefix is not set")
         return f"{original_repo}__{tool_slug}__{date_str}"
 
     def ensure_repo_exists(self, repo_name: str) -> bool:
@@ -159,6 +210,10 @@ class GitHubPRForker:
         time.sleep(2)
         self._initialized_repos.add(repo_name)
         return True
+
+    def clone_upstream(self, owner: str, repo: str) -> str:
+        """Clone an upstream repo (or return cached path). Call serially in stage 1."""
+        return self._get_clone(owner, repo)
 
     def _get_clone(self, owner: str, repo: str) -> str:
         """Return path to a cached clone of the source repo, cloning on first access."""
@@ -187,9 +242,16 @@ class GitHubPRForker:
     def run_git(self, tmpdir: str, *args) -> subprocess.CompletedProcess:
         return subprocess.run(["git", "-C", tmpdir, *args], capture_output=True, text=True)
 
-    def process_pr(self, pr_url: str, ai_tool_name: str, config_prefix: str | None = None) -> dict:
+    # ------------------------------------------------------------------
+    # Two-phase API: prepare (git) then open (API-only)
+    # ------------------------------------------------------------------
+
+    def prepare_mirror_pr(
+        self, pr_url: str, ai_tool_name: str, config_prefix: str | None = None
+    ) -> PreparedMirrorPR:
+        """Stage 2: fetch PR head + push branches via refspec. No checkout, fully parallel-safe."""
         owner, repo, pr_number = self.parse_pr_url(pr_url)
-        print(f"\nProcessing PR #{pr_number} from {owner}/{repo}")
+        print(f"\nPreparing PR #{pr_number} from {owner}/{repo}")
 
         pr = self.get_pr_details(owner, repo, pr_number)
         pr_title = pr["title"]
@@ -199,69 +261,68 @@ class GitHubPRForker:
         print(f"  Title: {pr_title}")
         print(f"  Base: ({base_sha[:7]})")
 
-        new_repo_name = self.generate_repo_name(repo, ai_tool_name, config_prefix)
-        newly_created = self.ensure_repo_exists(new_repo_name)
+        bench_repo = self.generate_repo_name(ai_tool_name, config_prefix, original_repo=repo)
 
-        base_branch_name = f"base-pr-{pr_number}"
-        pr_branch_name = f"pr-{pr_number}"
+        ref_frag = _git_branch_fragment(owner, repo, pr_number)
+        base_branch = f"base-pr-{ref_frag}"
+        pr_branch = f"pr-{ref_frag}"
+        fetch_ref = f"pr-fetch-{ref_frag}"
 
-        tmpdir = self._get_clone(owner, repo)
+        tmpdir = self._clone_cache.get((owner, repo))
+        if tmpdir is None:
+            tmpdir = self._get_clone(owner, repo)
 
-        # Fetch PR head into the cached clone
-        print(f"Fetching PR #{pr_number}...")
-        result = self.run_git(
-            tmpdir, "fetch", "origin", f"+pull/{pr_number}/head:pr-head-{pr_number}"
-        )
+        print(f"  Fetching PR #{pr_number}...")
+        result = self.run_git(tmpdir, "fetch", "origin", f"+pull/{pr_number}/head:{fetch_ref}")
         if result.returncode != 0:
             raise Exception(f"Fetch failed:\nstdout: {result.stdout}\nstderr: {result.stderr}")
 
-        # Create base branch from the PR's base SHA
-        print("Setting up base branch...")
-        self.run_git(tmpdir, "branch", "-D", base_branch_name)
-        self.run_git(tmpdir, "checkout", base_sha)
-        self.run_git(tmpdir, "checkout", "-b", base_branch_name)
-
-        # Create PR branch from the fetched PR head
-        print("Setting up PR branch...")
-        self.run_git(tmpdir, "branch", "-D", pr_branch_name)
-        self.run_git(tmpdir, "checkout", f"pr-head-{pr_number}")
-        self.run_git(tmpdir, "checkout", "-b", pr_branch_name)
-
-        # Ensure the target remote is configured
-        push_url = f"https://x-access-token:{self.token}@github.com/{self.org}/{new_repo_name}.git"
-        self.run_git(tmpdir, "remote", "remove", "target")
-        self.run_git(tmpdir, "remote", "add", "target", push_url)
-
-        print(f"Pushing {base_branch_name}...")
-        result = self.run_git(tmpdir, "push", "target", base_branch_name)
+        push_url = (
+            f"https://x-access-token:{self.token}"
+            f"@github.com/{self.org}/{bench_repo}.git"
+        )
+        print(f"  Pushing branches for PR #{pr_number}...")
+        result = self.run_git(
+            tmpdir,
+            "push",
+            push_url,
+            f"{base_sha}:refs/heads/{base_branch}",
+            f"{fetch_ref}:refs/heads/{pr_branch}",
+        )
         if result.returncode != 0:
-            raise Exception(f"Push base failed:\nstdout: {result.stdout}\nstderr: {result.stderr}")
+            raise Exception(f"Push failed:\nstdout: {result.stdout}\nstderr: {result.stderr}")
 
-        print(f"Pushing {pr_branch_name}...")
-        result = self.run_git(tmpdir, "push", "target", pr_branch_name)
-        if result.returncode != 0:
-            raise Exception(f"Push PR branch failed:\nstdout: {result.stdout}\nstderr: {result.stderr}")
-
-        if newly_created:
-            print("Making repository public...")
-            self.make_repo_public(new_repo_name)
-
-        # Create PR
-        print("Creating PR...")
-        new_pr = self.create_pull_request(
-            repo=new_repo_name,
+        return PreparedMirrorPR(
+            pr_url=pr_url,
+            config_prefix=config_prefix or "",
+            bench_repo_name=bench_repo,
             title=pr_title,
             body=pr_body,
-            head=pr_branch_name,
-            base=base_branch_name,
+            head_branch=pr_branch,
+            base_branch=base_branch,
         )
 
-        print("\n" + "=" * 60)
-        print("SUCCESS!")
-        print(f"New PR: {new_pr['html_url']}")
-        print("=" * 60)
-
+    def open_mirror_pr(self, prepared: PreparedMirrorPR) -> dict:
+        """Stage 3: open a GitHub PR from already-pushed branches."""
+        print(f"  Opening PR for {prepared.pr_url}...")
+        new_pr = self.create_pull_request(
+            repo=prepared.bench_repo_name,
+            title=prepared.title,
+            body=prepared.body,
+            head=prepared.head_branch,
+            base=prepared.base_branch,
+        )
+        print(f"  OK: {prepared.pr_url} -> {new_pr['html_url']}")
         return {"new_pr_url": new_pr["html_url"]}
+
+    # ------------------------------------------------------------------
+    # Convenience wrapper (single-PR CLI and batch --file mode)
+    # ------------------------------------------------------------------
+
+    def process_pr(self, pr_url: str, ai_tool_name: str, config_prefix: str | None = None) -> dict:
+        """End-to-end: prepare + open in one call."""
+        prepared = self.prepare_mirror_pr(pr_url, ai_tool_name, config_prefix)
+        return self.open_mirror_pr(prepared)
 
 
 def _load_pr_urls_from_file(path: str) -> list[str]:
@@ -296,6 +357,7 @@ def _load_pr_urls_from_file(path: str) -> list[str]:
 
 def main():
     """CLI entrypoint: process a single PR or a batch file."""
+    load_dotenv()
     parser = argparse.ArgumentParser(description="Clone PR(s) to your org for AI review")
     parser.add_argument("pr_url", nargs="?", help="GitHub PR URL (for single run)")
     parser.add_argument("--file", help="Path to golden comments JSON to batch process")
@@ -323,7 +385,6 @@ def main():
                 print("No PR URLs found in file.", file=sys.stderr)
                 sys.exit(1)
 
-            # Extract config prefix from filename (e.g., "cal_dot_com.json" -> "cal_dot_com")
             config_prefix = os.path.splitext(os.path.basename(args.file))[0]
 
             total = len(urls)
@@ -341,7 +402,6 @@ def main():
                     failures += 1
                     print(f"Error processing {url}: {exc}", file=sys.stderr)
 
-            # Final bar update
             bar = "#" * 30
             print(f"[{bar}] {total}/{total} completed")
             if failures:
