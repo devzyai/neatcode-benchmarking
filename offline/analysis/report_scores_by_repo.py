@@ -32,7 +32,8 @@ def load_dotenv_cwd() -> None:
 
 def default_evaluations_path() -> Path:
     load_dotenv_cwd()
-    model = os.environ.get("MARTIAN_MODEL", "gpt-4o")
+    # Align with report_all_tools default (results/openai_gpt-5.2/evaluations.json) when unset
+    model = os.environ.get("MARTIAN_MODEL", "openai/gpt-5.2")
     safe = model.strip().replace("/", "_")
     return Path("results") / safe / "evaluations.json"
 
@@ -68,10 +69,7 @@ def normalize_repo(name: str) -> str:
 
 
 def golden_url_in_repo(golden_url: str, canonical: str) -> bool:
-    for fragment in REPO_MATCHERS[canonical]:
-        if fragment in golden_url:
-            return True
-    return False
+    return any(fragment in golden_url for fragment in REPO_MATCHERS[canonical])
 
 
 def main() -> None:
@@ -92,7 +90,10 @@ def main() -> None:
         "--evaluations",
         type=Path,
         default=None,
-        help="Path to evaluations.json (default: results/<MARTIAN_MODEL>/evaluations.json)",
+        help=(
+            "Path to evaluations.json (default: from .env MARTIAN_MODEL, "
+            "else openai/gpt-5.2 → results/openai_gpt-5.2/)"
+        ),
     )
     args = parser.parse_args()
 

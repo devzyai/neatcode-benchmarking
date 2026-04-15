@@ -75,6 +75,14 @@ pytest
 ruff check .
 ```
 
+## Paths and reporting defaults
+
+Judge outputs (steps 2–3) go under `results/<sanitized MARTIAN_MODEL>/` (slashes become underscores), e.g. `MARTIAN_MODEL=openai/gpt-5.2` → `results/openai_gpt-5.2/`.
+
+- **`analysis/report_all_tools.py`** defaults to `results/openai_gpt-5.2/evaluations.json`.
+- **`analysis/report_scores_by_repo.py`** uses the same file when `MARTIAN_MODEL` is unset (`openai/gpt-5.2`). Override with `--evaluations` or set `MARTIAN_MODEL` in `.env` for other runs.
+- **`analysis/merge_neatcode_into_openai_gpt52.py`** merges `neatcode` from `results/gpt-5.2/` into `results/openai_gpt-5.2/` by default; use `--neat-subdir` / `--openai-subdir` if your directory names differ from those judge outputs.
+
 ---
 
 ## Pipeline steps
@@ -135,8 +143,15 @@ uv run python -m code_review_benchmark.step0_orchestrate_forks \
     --org my-org --name coderabbit --prepare-concurrency 20
 ```
 
-**Repo naming:** `{golden_stem}__{tool}__{date}` (e.g. `sentry__coderabbit__20260407`).
-Each PR gets unique branches: `base-pr-{owner}-{repo}-{N}` and `pr-{owner}-{repo}-{N}`.
+**Bench repo names** (step 0 and step 1 share the same parsing):
+
+| Shape | Pattern | Example |
+|-------|---------|---------|
+| Single-PR (legacy) | `{config}__{upstream_repo}__{tool}__PR{n}__{date}` | `cal_dot_com__repo__tool-x__PR12__20240101` |
+| Shared multi-PR (legacy) | `{config}__{upstream_repo}__{tool}__{YYYYMMDD}` | four segments ending in `YYYYMMDD` |
+| Shared multi-PR (current) | `{config}__{tool}__{YYYYMMDD}` | `sentry__coderabbit__20260407` |
+
+**Head branches** opened in the bench repo: legacy `pr-{N}` (digits only) or current `pr-{owner}-{repo}-{N}` (upstream PR number is the trailing `-{N}`). Step 1 resolves golden comments by URL; for the three-part repo name it matches `golden_comments/{config}.json` plus PR number.
 
 The command exits `0` when all stages succeed, `1` when any task fails.
 The summary prints per-stage failure counts for easy triage.
@@ -144,7 +159,7 @@ The summary prints per-stage failure counts for easy triage.
 ### 1. Download PR data
 
 Aggregate PR reviews from benchmark repos with golden comments.
-Supports both old-format repos (one PR per repo) and new-format repos (multiple PRs per repo):
+Supports single-PR repos, legacy four-part shared repos, and three-part shared repos (see bench repo naming above). Multiple PRs in one repo are discovered from head branch names; `source_repo` in the output is taken from the golden PR URL when possible.
 
 ```bash
 # Full run (incremental - skips already downloaded)
@@ -299,22 +314,33 @@ uv run python -m code_review_benchmark.step4_export_by_tool --tool greptile
 
 ## GitHub Actions
 
-The offline benchmark workflow lives at [`.github/workflows/benchmark-offline.yml`](../.github/workflows/benchmark-offline.yml).
+Benchmark automation is split into two workflows so fork setup does not require judge (Martian) secrets:
 
-### Benchmark offline (`benchmark-offline.yml`)
+| Workflow | File | Purpose |
+|----------|------|---------|
+| **Benchmark fork (step 0)** | [`.github/workflows/benchmark-fork.yml`](../.github/workflows/benchmark-fork.yml) | Orchestrate forks: create repos and open PRs in `benchmark_org`. |
+| **Benchmark evaluate (steps 1–3)** | [`.github/workflows/benchmark-evaluate.yml`](../.github/workflows/benchmark-evaluate.yml) | Download reviews → extract → dedup → judge. Uploads `offline/results/` as an artifact. |
+| **Benchmark delete repos** | [`.github/workflows/benchmark-delete-repos.yml`](../.github/workflows/benchmark-delete-repos.yml) | Optional: list or delete fork repos matching step 0 naming (dry-run by default). |
 
-**Trigger:** `workflow_dispatch` only (Actions tab → Benchmark offline → Run workflow).
+**Typical order:** run **Benchmark fork** first (or use existing fork repos), then **Benchmark evaluate** when PRs are ready. Both use `workflow_dispatch` only (Actions tab → select workflow → Run workflow).
 
-**What it runs:** From the `offline/` directory, optionally step 0 (orchestrate forks), then steps 1 → 2 → 2.5 → 3. Uploads `offline/results/` as a workflow artifact.
+### Benchmark fork (`benchmark-fork.yml`)
+
+**Secrets:** `BENCHMARK_GH_TOKEN` only. Martian variables are **not** required.
+
+**Inputs:** `ref`, `benchmark_org`, `tool` (same meanings as below).
+
+### Benchmark evaluate (`benchmark-evaluate.yml`)
+
+**Secrets:** `BENCHMARK_GH_TOKEN`, `MARTIAN_API_KEY`, and `MARTIAN_MODEL` (or pass `judge_model`).
 
 **Workflow inputs**
 
 | Input | Meaning |
 |-------|---------|
 | `ref` | Git branch or tag of **this** (`neatcode-benchmarking`) repo to checkout. Use this to run a specific version of the benchmark scripts. Default: `main`. |
-| `benchmark_org` | GitHub organization slug where benchmark fork repos live (e.g. a dedicated eval org). Passed to `--org` for step 0 and step 1. |
+| `benchmark_org` | GitHub organization slug where benchmark fork repos live (e.g. a dedicated eval org). Passed to `--org` for step 1. |
 | `tool` | Tool slug matching step 0 `--name` and repo name segments (e.g. `neatcode_staging`). |
-| `run_step0` | If true, runs `step0_orchestrate_forks` first (creates repos and PRs in `benchmark_org`). Long-running; requires a token that can create repositories in that org. |
 | `step1_force` | If true, passes `--force` to step 1 (refetch reviews). |
 | `step1_test` | If true, passes `--test` to step 1 (one repo per tool). |
 | `judge_model` | Optional. If set, overrides `MARTIAN_MODEL` for the judge. If empty, the `MARTIAN_MODEL` repository secret is used. |
@@ -324,11 +350,35 @@ The offline benchmark workflow lives at [`.github/workflows/benchmark-offline.ym
 
 | Secret | Required | Purpose |
 |--------|----------|---------|
-| `BENCHMARK_GH_TOKEN` | Yes | Personal access token (classic or fine-grained) used as `GH_TOKEN` / `GITHUB_TOKEN` for `gh` and step 0. Must be able to **list and read** PRs in `benchmark_org`, and **create repositories** there if you use `run_step0`. The default `GITHUB_TOKEN` in Actions cannot replace this for arbitrary orgs. |
-| `MARTIAN_API_KEY` | Yes | API key for the OpenAI-compatible judge endpoint. |
-| `MARTIAN_MODEL` | Yes (unless you always pass `judge_model`) | Default judge model id (e.g. `openai/gpt-4o-mini`). Same value as in local `.env`. |
+| `BENCHMARK_GH_TOKEN` | Yes (fork, evaluate, delete workflows) | Personal access token (classic or fine-grained) used as `GH_TOKEN` / `GITHUB_TOKEN` for `gh`. Must be able to **list and read** PRs in `benchmark_org`, **create repositories** there for step 0, and **delete repositories** there if you use the delete script or workflow. The default `GITHUB_TOKEN` in Actions cannot replace this for arbitrary orgs. |
+| `MARTIAN_API_KEY` | Yes (evaluate workflow only) | API key for the OpenAI-compatible judge endpoint. |
+| `MARTIAN_MODEL` | Yes for evaluate (unless you always pass `judge_model`) | Default judge model id (e.g. `openai/gpt-5.2`). Same value as in local `.env`. |
 
 Optional: add `MARTIAN_BASE_URL` only if you use a non-default judge endpoint; for a custom base URL you can extend the workflow `env` or rely on local `.env` when running manually.
+
+### Deleting benchmark repos
+
+Bench repo names follow step 0 (see [bench naming](#paths-and-reporting-defaults) above): they end with `__{tool_slug}__{YYYYMMDD}`. The **`--org`** argument is the **account that owns the forks**: a GitHub **Organization** slug, or a **user** login if the forks live under a personal account (the script lists via the org API first, then falls back to the user API if the name is not an org).
+
+The script uses the **`gh` CLI** (same as other steps). **GitHub-hosted runners** (`ubuntu-latest`) already include `gh`; you do not install it in the workflow. Locally, install [GitHub CLI](https://cli.github.com/) or rely on `GH_TOKEN` with a `gh` binary.
+
+To remove repos from that account after a run:
+
+```bash
+cd offline
+# Dry-run: lists matching repos (default — no deletes)
+uv run python -m code_review_benchmark.delete_benchmark_repos --org YOUR_ORG --tool YOUR_TOOL_NAME
+
+# Only repos for a single day
+uv run python -m code_review_benchmark.delete_benchmark_repos --org YOUR_ORG --tool YOUR_TOOL_NAME --date 20260401
+
+# Actually delete (irreversible)
+uv run python -m code_review_benchmark.delete_benchmark_repos --org YOUR_ORG --tool YOUR_TOOL_NAME --execute
+```
+
+The GitHub Actions workflow **Benchmark delete repos** runs the same CLI: leave **`dry_run`** enabled to print names only; set **`dry_run`** to **false** (unchecked) to pass **`--execute`** (use only after reviewing the dry-run). The workflow only adds **`--execute`** when `dry_run` is explicitly false, so the default stays a safe list-only run.
+
+**PAT:** deleting repositories requires **`BENCHMARK_GH_TOKEN`** to include **administration: delete repositories** (or equivalent classic scope) on `benchmark_org`. Fine-grained PATs must allow repository deletion for that org.
 
 **PAT permissions (typical)**
 

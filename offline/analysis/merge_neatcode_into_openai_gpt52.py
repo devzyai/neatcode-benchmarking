@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """
-Overlay `neatcode` from results/gpt-5.2/ into results/openai_gpt-5.2/ for
-evaluations.json and candidates.json (same golden PR URLs).
+Overlay ``neatcode`` from one judge output directory into another (same golden PR URLs).
+
+Defaults assume NeatCode was judged with a model id that maps to ``results/gpt-5.2/``
+(e.g. ``MARTIAN_MODEL=gpt-5.2``) and the baseline run lives in ``results/openai_gpt-5.2/``
+(``MARTIAN_MODEL=openai/gpt-5.2``). Override with ``--neat-subdir`` / ``--openai-subdir`` if your folders differ
+(see ``sanitize_model_name`` in ``step3_judge_comments``).
 
 Run from offline/:
 
@@ -12,8 +16,8 @@ from __future__ import annotations
 
 import argparse
 import json
-import shutil
 from pathlib import Path
+import shutil
 
 
 def main() -> None:
@@ -25,6 +29,16 @@ def main() -> None:
         help="Results root (default: results)",
     )
     parser.add_argument(
+        "--neat-subdir",
+        default="gpt-5.2",
+        help="Subdirectory under --results with NeatCode evaluations/candidates (default: gpt-5.2)",
+    )
+    parser.add_argument(
+        "--openai-subdir",
+        default="openai_gpt-5.2",
+        help="Subdirectory under --results to merge into (default: openai_gpt-5.2)",
+    )
+    parser.add_argument(
         "--no-backup",
         action="store_true",
         help="Do not write .bak copies before overwriting",
@@ -32,8 +46,8 @@ def main() -> None:
     args = parser.parse_args()
 
     results = args.results.resolve()
-    neat_dir = results / "gpt-5.2"
-    openai_dir = results / "openai_gpt-5.2"
+    neat_dir = results / args.neat_subdir
+    openai_dir = results / args.openai_subdir
 
     neat_eval = neat_dir / "evaluations.json"
     neat_cand = neat_dir / "candidates.json"

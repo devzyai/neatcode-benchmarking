@@ -149,7 +149,14 @@ def test_main_writes_evaluations(monkeypatch, tmp_path):
             return None
 
         def parse_args(self):
-            return SimpleNamespace(tool=None, limit=None, force=False, structured=False)
+            return SimpleNamespace(
+                tool=None,
+                limit=None,
+                force=False,
+                structured=False,
+                dedup_groups=None,
+                evaluations_file=None,
+            )
 
     monkeypatch.setattr(argparse, "ArgumentParser", DummyParser)
 

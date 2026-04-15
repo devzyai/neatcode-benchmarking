@@ -15,6 +15,7 @@ from pathlib import Path
 
 # Tool display configuration
 TOOL_DISPLAY_NAMES = {
+    "neatcode": "NeatCode",
     "graphite": "Graphite",
     "qodo": "Qodo",
     "gemini": "Gemini",
@@ -34,6 +35,7 @@ TOOL_DISPLAY_NAMES = {
 }
 
 TOOL_COLORS = {
+    "neatcode": "#0d9488",
     "graphite": "#6366f1",
     "qodo": "#8b5cf6",
     "gemini": "#06b6d4",
