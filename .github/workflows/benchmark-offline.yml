@@ -1,0 +1,138 @@
+name: Benchmark offline
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref (branch or tag) of this repo to run benchmark scripts from"
+        required: false
+        default: "main"
+      benchmark_org:
+        description: "GitHub org slug where benchmark fork repos live (e.g. dezy-benchmark)"
+        required: true
+        type: string
+      tool:
+        description: "Tool slug matching step 0 --name / repo names (e.g. neatcode_staging)"
+        required: true
+        type: string
+      run_step0:
+        description: "Run orchestrate-forks (creates repos/PRs in benchmark_org)"
+        required: false
+        type: boolean
+        default: false
+      step1_force:
+        description: "Pass --force to step 1 (refetch reviews)"
+        required: false
+        type: boolean
+        default: false
+      step1_test:
+        description: "Pass --test to step 1 (one repo per tool)"
+        required: false
+        type: boolean
+        default: false
+      judge_model:
+        description: "Override MARTIAN_MODEL for the judge (leave empty to use MARTIAN_MODEL secret)"
+        required: false
+        type: string
+        default: ""
+      limit:
+        description: "Optional --limit for steps 2 and 3 (smoke runs); leave empty for full run"
+        required: false
+        type: string
+        default: ""
+
+concurrency:
+  group: benchmark-offline-${{ github.repository }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: offline
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    permissions:
+      contents: read
+
+    env:
+      GH_TOKEN: ${{ secrets.BENCHMARK_GH_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.BENCHMARK_GH_TOKEN }}
+      MARTIAN_API_KEY: ${{ secrets.MARTIAN_API_KEY }}
+      MARTIAN_MODEL: ${{ inputs.judge_model || secrets.MARTIAN_MODEL }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Verify secrets
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then echo "Missing secret BENCHMARK_GH_TOKEN"; exit 1; fi
+          if [ -z "${MARTIAN_API_KEY:-}" ]; then echo "Missing secret MARTIAN_API_KEY"; exit 1; fi
+          if [ -z "${MARTIAN_MODEL:-}" ]; then echo "Set secret MARTIAN_MODEL or pass judge_model input"; exit 1; fi
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Step 0 — orchestrate forks
+        if: ${{ inputs.run_step0 }}
+        timeout-minutes: 180
+        run: >-
+          uv run python -m code_review_benchmark.step0_orchestrate_forks
+          --org "${{ inputs.benchmark_org }}"
+          --name "${{ inputs.tool }}"
+          --golden-dir golden_comments
+
+      - name: Step 1 — download PR data
+        timeout-minutes: 60
+        run: |
+          set -euo pipefail
+          ARGS=(--org "${{ inputs.benchmark_org }}" --output results/benchmark_data.json --tool "${{ inputs.tool }}")
+          if [[ "${{ inputs.step1_force }}" == "true" ]]; then ARGS+=(--force); fi
+          if [[ "${{ inputs.step1_test }}" == "true" ]]; then ARGS+=(--test); fi
+          uv run python -m code_review_benchmark.step1_download_prs "${ARGS[@]}"
+
+      - name: Step 2 — extract comments
+        timeout-minutes: 120
+        run: |
+          set -euo pipefail
+          CMD=(uv run python -m code_review_benchmark.step2_extract_comments --tool "${{ inputs.tool }}")
+          if [[ -n "${{ inputs.limit }}" ]]; then CMD+=(--limit "${{ inputs.limit }}"); fi
+          "${CMD[@]}"
+
+      - name: Step 2.5 — deduplicate candidates
+        timeout-minutes: 120
+        run: >-
+          uv run python -m code_review_benchmark.step2_5_dedup_candidates
+          --tool "${{ inputs.tool }}"
+
+      - name: Step 3 — judge comments
+        timeout-minutes: 300
+        run: |
+          set -euo pipefail
+          MODEL_SLUG="${MARTIAN_MODEL//\//_}"
+          CMD=(
+            uv run python -m code_review_benchmark.step3_judge_comments
+            --tool "${{ inputs.tool }}"
+            --dedup-groups "results/${MODEL_SLUG}/dedup_groups.json"
+          )
+          if [[ -n "${{ inputs.limit }}" ]]; then CMD+=(--limit "${{ inputs.limit }}"); fi
+          "${CMD[@]}"
+
+      - name: Upload results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-${{ github.run_id }}
+          path: |
+            offline/results/
+          if-no-files-found: warn
