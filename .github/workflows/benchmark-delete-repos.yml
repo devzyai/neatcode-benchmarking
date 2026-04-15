@@ -72,5 +72,7 @@ jobs:
           set -euo pipefail
           ARGS=(--org "${{ inputs.benchmark_org }}" --tool "${{ inputs.tool }}")
           if [[ -n "${{ inputs.date }}" ]]; then ARGS+=(--date "${{ inputs.date }}"); fi
-          if [[ "${{ inputs.dry_run }}" != "true" ]]; then ARGS+=(--execute); fi
+          # Only pass --execute when explicitly false (boolean inputs can render empty in bash;
+          # using != "true" would wrongly add --execute when dry_run is empty).
+          if [[ "${{ inputs.dry_run }}" == "false" ]]; then ARGS+=(--execute); fi
           uv run python -m code_review_benchmark.delete_benchmark_repos "${ARGS[@]}"
