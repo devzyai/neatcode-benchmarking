@@ -1,4 +1,7 @@
-name: Benchmark offline
+# Steps 1–3: download reviews → extract → dedup → judge. Requires Martian secrets.
+# Run after forks exist (manual benchmark-fork.yml or existing repos in benchmark_org).
+
+name: Benchmark evaluate (steps 1–3)
 
 on:
   workflow_dispatch:
@@ -15,11 +18,6 @@ on:
         description: "Tool slug matching step 0 --name / repo names (e.g. neatcode_staging)"
         required: true
         type: string
-      run_step0:
-        description: "Run orchestrate-forks (creates repos/PRs in benchmark_org)"
-        required: false
-        type: boolean
-        default: false
       step1_force:
         description: "Pass --force to step 1 (refetch reviews)"
         required: false
@@ -42,7 +40,7 @@ on:
         default: ""
 
 concurrency:
-  group: benchmark-offline-${{ github.repository }}
+  group: benchmark-eval-${{ github.repository }}
   cancel-in-progress: false
 
 defaults:
@@ -50,7 +48,7 @@ defaults:
     working-directory: offline
 
 jobs:
-  benchmark:
+  evaluate:
     runs-on: ubuntu-latest
     timeout-minutes: 360
     permissions:
@@ -82,15 +80,6 @@ jobs:
 
       - name: Install dependencies
         run: uv sync
-
-      - name: Step 0 — orchestrate forks
-        if: ${{ inputs.run_step0 }}
-        timeout-minutes: 180
-        run: >-
-          uv run python -m code_review_benchmark.step0_orchestrate_forks
-          --org "${{ inputs.benchmark_org }}"
-          --name "${{ inputs.tool }}"
-          --golden-dir golden_comments
 
       - name: Step 1 — download PR data
         timeout-minutes: 60
@@ -132,7 +121,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: benchmark-results-${{ github.run_id }}
+          name: benchmark-evaluate-results-${{ github.run_id }}
           path: |
             offline/results/
           if-no-files-found: warn

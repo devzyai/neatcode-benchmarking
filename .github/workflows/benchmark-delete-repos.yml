@@ -1,0 +1,76 @@
+# Delete benchmark fork repos whose names match step 0 naming (__tool_slug__YYYYMMDD).
+# Default: dry-run (list only). Set dry_run to false to pass --execute (destructive).
+
+name: Benchmark delete repos
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref (branch or tag) of this repo to run scripts from"
+        required: false
+        default: "main"
+      benchmark_org:
+        description: "GitHub org containing benchmark fork repos"
+        required: true
+        type: string
+      tool:
+        description: "Tool name as step 0 --name (e.g. neatcode_staging)"
+        required: true
+        type: string
+      date:
+        description: "Optional YYYYMMDD — only delete repos ending with this date"
+        required: false
+        type: string
+        default: ""
+      dry_run:
+        description: "If true (default), only list matching repos; if false, DELETE them"
+        required: false
+        type: boolean
+        default: true
+
+concurrency:
+  group: benchmark-delete-${{ github.repository }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: offline
+
+jobs:
+  delete:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    env:
+      GH_TOKEN: ${{ secrets.BENCHMARK_GH_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.BENCHMARK_GH_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Verify GitHub token
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then echo "Missing secret BENCHMARK_GH_TOKEN"; exit 1; fi
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Delete matching repos (dry-run unless dry_run is false)
+        run: |
+          set -euo pipefail
+          ARGS=(--org "${{ inputs.benchmark_org }}" --tool "${{ inputs.tool }}")
+          if [[ -n "${{ inputs.date }}" ]]; then ARGS+=(--date "${{ inputs.date }}"); fi
+          if [[ "${{ inputs.dry_run }}" != "true" ]]; then ARGS+=(--execute); fi
+          uv run python -m code_review_benchmark.delete_benchmark_repos "${ARGS[@]}"

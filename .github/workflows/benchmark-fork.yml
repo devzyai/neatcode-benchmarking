@@ -1,0 +1,74 @@
+# Step 0 only: create benchmark repos and open PRs in the target org.
+# Does not require Martian / judge secrets. Run evaluation separately (benchmark-evaluate.yml).
+
+name: Benchmark fork (step 0)
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref (branch or tag) of this repo to run benchmark scripts from"
+        required: false
+        default: "main"
+      benchmark_org:
+        description: "GitHub org slug where benchmark fork repos live (e.g. dezy-benchmark)"
+        required: true
+        type: string
+      tool:
+        description: "Tool slug matching step 0 --name / repo names (e.g. neatcode_staging)"
+        required: true
+        type: string
+
+concurrency:
+  group: benchmark-fork-${{ github.repository }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: offline
+
+jobs:
+  fork:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      contents: read
+
+    env:
+      GH_TOKEN: ${{ secrets.BENCHMARK_GH_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.BENCHMARK_GH_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Verify GitHub token
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then echo "Missing secret BENCHMARK_GH_TOKEN"; exit 1; fi
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Step 0 — orchestrate forks
+        run: >-
+          uv run python -m code_review_benchmark.step0_orchestrate_forks
+          --org "${{ inputs.benchmark_org }}"
+          --name "${{ inputs.tool }}"
+          --golden-dir golden_comments
+
+      - name: Upload results (if any)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-fork-results-${{ github.run_id }}
+          path: |
+            offline/results/
+          if-no-files-found: warn
