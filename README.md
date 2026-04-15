@@ -31,14 +31,13 @@ Without shared evals for these tools, every company grades its own homework. You
 
 ### Offline — fixed dataset, reproducible results
 
-**50 PRs** from 5 major open-source projects, each with human-verified golden comments — the real issues a reviewer should catch.
+**40 PRs** from four major open-source projects, each with human-verified golden comments — the real issues a reviewer should catch.
 
 | Repository | Language | Domain |
 |---|---|---|
 | [Sentry](https://github.com/getsentry/sentry) | Python | Error tracking |
 | [Grafana](https://github.com/grafana/grafana) | Go | Observability |
 | [Cal.com](https://github.com/calcom/cal.com) | TypeScript | Scheduling |
-| [Discourse](https://github.com/discourse/discourse) | Ruby | Forum platform |
 | [Keycloak](https://github.com/keycloak/keycloak) | Java | Authentication |
 
 Each PR has curated golden comments with severity labels (Low / Medium / High / Critical). An LLM judge matches each tool's review against the golden comments and computes precision and recall.

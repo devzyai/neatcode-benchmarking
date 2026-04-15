@@ -23,13 +23,14 @@ from datetime import timezone
 import json
 import os
 from pathlib import Path
-import re
 import subprocess
 import sys
 import time
 from typing import Callable
 
 from tqdm import tqdm
+
+from .bench_naming import extract_benchmark_prs_from_pulls_json, parse_bench_repo_name
 
 # ── Tool routing ───────────────────────────────────────────────────────────────
 
@@ -468,36 +469,6 @@ SUPPORTED_TOOLS = frozenset(_STRATEGY.keys())
 # ── Repo helpers ───────────────────────────────────────────────────────────────
 
 
-def _parse_repo_name(name: str) -> dict | None:
-    """Extract components from a benchmark repo name.
-
-    Supports two naming conventions:
-      New: {config_prefix}__{original_repo}__{tool}__{date}
-      Old: {config_prefix}__{original_repo}__{tool}__PR{number}__{date}
-    """
-    # Old format (one PR per repo)
-    match = re.match(r"^(.+?)__(.+?)__(.+?)__PR(\d+)__(\d+)$", name)
-    if match:
-        return {
-            "config_prefix": match.group(1),
-            "original_repo": match.group(2),
-            "tool": match.group(3),
-            "pr_number": int(match.group(4)),
-            "date": match.group(5),
-        }
-    # New format (no PR number — repo holds multiple PRs)
-    match = re.match(r"^(.+?)__(.+?)__(.+?)__(\d{8})$", name)
-    if match:
-        return {
-            "config_prefix": match.group(1),
-            "original_repo": match.group(2),
-            "tool": match.group(3),
-            "pr_number": None,
-            "date": match.group(4),
-        }
-    return None
-
-
 def _should_skip(tool: str) -> bool:
     return tool in IGNORE_TOOLS or any(tool.startswith(p) for p in _IGNORE_PREFIXES)
 
@@ -505,17 +476,7 @@ def _should_skip(tool: str) -> bool:
 def _list_repo_prs(org: str, repo_name: str) -> list[dict]:
     """List open PRs in a new-format repo, extracting original PR numbers from branch names."""
     prs = _gh_paginated(f"/repos/{org}/{repo_name}/pulls?state=all&per_page=100")
-    results = []
-    for pr in prs:
-        head_ref = pr.get("head", {}).get("ref", "")
-        match = re.match(r"^pr-(\d+)$", head_ref)
-        if match:
-            results.append({
-                "repo_pr_number": pr["number"],
-                "original_pr_number": int(match.group(1)),
-                "pr_url": pr.get("html_url"),
-            })
-    return results
+    return extract_benchmark_prs_from_pulls_json(prs)
 
 
 def _process_repo(org: str, repo_name: str, tool: str, pr_number: int = 1) -> TimingResult:
@@ -654,7 +615,7 @@ def main() -> None:
 
     for entry in all_repos:
         repo_name = entry["name"]
-        parsed = _parse_repo_name(repo_name)
+        parsed = parse_bench_repo_name(repo_name)
         if not parsed:
             continue
         tool = parsed["tool"]

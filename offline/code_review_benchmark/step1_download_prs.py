@@ -7,11 +7,18 @@ from concurrent.futures import as_completed
 import json
 import os
 from pathlib import Path
-import re
 import subprocess
 import sys
 
 from tqdm import tqdm
+
+from .bench_naming import (
+    extract_benchmark_prs_from_pulls_json,
+    find_golden_url,
+    find_golden_url_for_config,
+    parse_bench_repo_name,
+    source_repo_from_github_pr_url,
+)
 
 # GitHub API allows ~30 concurrent requests, stay conservative
 MAX_WORKERS = 15
@@ -70,41 +77,8 @@ def load_golden_comments(folder: str) -> dict[str, dict]:
 
 
 def parse_repo_name(name: str) -> dict | None:
-    """Parse benchmark repo name to extract components.
-
-    Supports two naming conventions:
-      New: {config_prefix}__{original_repo}__{tool}__{date}
-      Old: {config_prefix}__{original_repo}__{tool}__PR{number}__{date}
-    """
-    # Old format (one PR per repo)
-    match = re.match(r"^(.+?)__(.+?)__(.+?)__PR(\d+)__(\d+)$", name)
-    if match:
-        return {
-            "config_prefix": match.group(1),
-            "original_repo": match.group(2),
-            "tool": match.group(3),
-            "pr_number": int(match.group(4)),
-            "date": match.group(5),
-        }
-    # New format (no PR number — repo holds multiple PRs)
-    match = re.match(r"^(.+?)__(.+?)__(.+?)__(\d{8})$", name)
-    if match:
-        return {
-            "config_prefix": match.group(1),
-            "original_repo": match.group(2),
-            "tool": match.group(3),
-            "pr_number": None,
-            "date": match.group(4),
-        }
-    return None
-
-
-def find_golden_url(golden: dict[str, dict], original_repo: str, pr_number: int) -> str | None:
-    """Find golden comment URL matching repo and PR number."""
-    for url in golden:
-        if f"/{original_repo}/pull/{pr_number}" in url:
-            return url
-    return None
+    """Parse benchmark repo name — see :func:`~bench_naming.parse_bench_repo_name`."""
+    return parse_bench_repo_name(name)
 
 
 def fetch_review_comments(org: str, repo: str, pr: int) -> list[dict]:
@@ -174,18 +148,11 @@ def list_repo_prs(org: str, repo_name: str) -> list[dict]:
     head branch convention used by step0).
     """
     prs = gh(["api", f"/repos/{org}/{repo_name}/pulls?state=all&per_page=100"])
-    if not isinstance(prs, list):
-        return []
-    results = []
-    for pr in prs:
-        head_ref = pr.get("head", {}).get("ref", "")
-        match = re.match(r"^pr-(\d+)$", head_ref)
-        if match:
-            results.append({
-                "repo_pr_number": pr["number"],
-                "original_pr_number": int(match.group(1)),
-            })
-    return results
+    out = extract_benchmark_prs_from_pulls_json(prs)
+    return [
+        {"repo_pr_number": e["repo_pr_number"], "original_pr_number": e["original_pr_number"]}
+        for e in out
+    ]
 
 
 def fetch_repo_data(org: str, repo_name: str, pr_number: int = 1) -> dict:
@@ -283,7 +250,12 @@ def main():
                 continue
             for pr_info in repo_prs:
                 orig_num = pr_info["original_pr_number"]
-                golden_url = find_golden_url(golden, parsed["original_repo"], orig_num)
+                if parsed.get("original_repo"):
+                    golden_url = find_golden_url(golden, parsed["original_repo"], orig_num)
+                else:
+                    golden_url = find_golden_url_for_config(
+                        golden, parsed["config_prefix"], orig_num
+                    )
                 if not golden_url:
                     errors.append(f"No golden match for {repo_name} PR#{orig_num}")
                     continue
@@ -324,10 +296,13 @@ def main():
                 # Create or update entry
                 if golden_url not in output:
                     golden_data = golden[golden_url]
+                    source_repo = source_repo_from_github_pr_url(golden_url) or parsed.get(
+                        "original_repo"
+                    )
                     output[golden_url] = {
                         "pr_title": golden_data["pr_title"],
                         "original_url": golden_data["original_url"],
-                        "source_repo": parsed["original_repo"],
+                        "source_repo": source_repo,
                         "golden_comments": golden_data["comments"],
                         "golden_source_file": golden_data["source_file"],
                         "az_comment": golden_data["az_comment"],

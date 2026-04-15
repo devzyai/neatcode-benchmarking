@@ -25,7 +25,6 @@ from code_review_benchmark.step0_fork_prs import PreparedMirrorPR
 from code_review_benchmark.step0_fork_prs import _load_pr_urls_from_file
 from code_review_benchmark.step0_fork_prs import load_dotenv
 
-
 # ---------------------------------------------------------------------------
 # Stage 1 helpers
 # ---------------------------------------------------------------------------
@@ -136,7 +135,8 @@ def main() -> None:
         "--repos",
         type=int,
         default=5,
-        help="How many golden JSON files (repos) to process (default: 5)",
+        help="Max golden JSON files to process, in sorted order (default: 5; "
+        "capped by how many *.json exist under --golden-dir, e.g. 4)",
     )
     parser.add_argument(
         "--prs-per-repo",

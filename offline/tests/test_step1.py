@@ -6,6 +6,7 @@ import json
 
 import pytest
 
+from code_review_benchmark import bench_naming
 from code_review_benchmark import step1_download_prs as step1
 
 
@@ -47,6 +48,26 @@ def test_load_golden_comments(tmp_path):
                 "date": "20240101",
             },
         ),
+        (
+            "cal_dot_com__upstream_repo__tool-x__20240101",
+            {
+                "config_prefix": "cal_dot_com",
+                "original_repo": "upstream_repo",
+                "tool": "tool-x",
+                "pr_number": None,
+                "date": "20240101",
+            },
+        ),
+        (
+            "cal_dot_com__my-tool__20240101",
+            {
+                "config_prefix": "cal_dot_com",
+                "original_repo": None,
+                "tool": "my-tool",
+                "pr_number": None,
+                "date": "20240101",
+            },
+        ),
         ("invalid_repo_name", None),
     ],
 )
@@ -61,6 +82,65 @@ def test_find_golden_url():
     }
     result = step1.find_golden_url(golden, "repo", 5)
     assert result == "https://github.com/example/repo/pull/5"
+
+
+def test_find_golden_url_no_false_match_pull_12_for_pr_1():
+    golden = {"https://github.com/example/repo/pull/12": {}}
+    assert step1.find_golden_url(golden, "repo", 1) is None
+
+
+def test_find_golden_url_for_config():
+    golden = {
+        "https://github.com/calcom/cal.com/pull/8330": {
+            "source_file": "cal_dot_com.json",
+            "comments": [],
+        },
+        "https://github.com/other/other/pull/8330": {
+            "source_file": "other.json",
+            "comments": [],
+        },
+    }
+    assert (
+        step1.find_golden_url_for_config(golden, "cal_dot_com", 8330)
+        == "https://github.com/calcom/cal.com/pull/8330"
+    )
+    assert step1.find_golden_url_for_config(golden, "cal_dot_com", 99) is None
+
+
+@pytest.mark.parametrize(
+    "head_ref,expected",
+    [
+        ("pr-8330", 8330),
+        ("pr-calcom-cal.com-8330", 8330),
+        ("main", None),
+    ],
+)
+def test_original_pr_number_from_head_ref(head_ref, expected):
+    assert bench_naming.original_pr_number_from_head_ref(head_ref) == expected
+
+
+def test_list_repo_prs_head_refs(monkeypatch):
+    def fake_gh(args):
+        assert "pulls" in args[1]
+        return [
+            {
+                "number": 1,
+                "head": {"ref": "pr-8330"},
+                "html_url": "https://github.com/org/bench/pull/1",
+            },
+            {
+                "number": 2,
+                "head": {"ref": "pr-calcom-cal.com-8330"},
+                "html_url": "https://github.com/org/bench/pull/2",
+            },
+        ]
+
+    monkeypatch.setattr(step1, "gh", fake_gh)
+    out = step1.list_repo_prs("org", "bench")
+    assert out == [
+        {"repo_pr_number": 1, "original_pr_number": 8330},
+        {"repo_pr_number": 2, "original_pr_number": 8330},
+    ]
 
 
 def test_fetch_review_comments(monkeypatch):
