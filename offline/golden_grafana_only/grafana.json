@@ -1,0 +1,80 @@
+[
+  {
+    "pr_title": "Anonymous: Add configurable device limit",
+    "url": "https://github.com/grafana/grafana/pull/79265",
+    "comments": [
+      {
+        "comment": "Race condition: Multiple concurrent requests could pass the device count check simultaneously and create devices beyond the limit. Consider using a database transaction or lock.",
+        "severity": "High"
+      },
+      {
+        "comment": "Anonymous authentication now fails entirely if anonDeviceService.TagDevice returns ErrDeviceLimitReached. Previously, device tagging was asynchronous and non-blocking. This change prevents anonymous users from authenticating when the device limit is reached.",
+        "severity": "Medium"
+      },
+      {
+        "comment": "This call won’t compile: dbSession.Exec(args...) is given a []interface{} where the first element is the query, but Exec’s signature requires a first parameter of type string (not an interface{} splat).",
+        "severity": "Medium"
+      },
+      {
+        "comment": "Returning ErrDeviceLimitReached when no rows were updated is misleading; the device might not exist.",
+        "severity": "Low"
+      },
+      {
+        "comment": "Time window calculation inconsistency: Using device.UpdatedAt.UTC().Add(-anonymousDeviceExpiration) as the lower bound but device.UpdatedAt as the current time may not match the intended logic. Consider using time.Now().UTC() consistently.",
+        "severity": "Low"
+      }
+    ]
+  },
+  {
+    "pr_title": "AuthZService: improve authz caching",
+    "url": "https://github.com/grafana/grafana/pull/103633",
+    "comments": [
+      {
+        "comment": "The Check operation exhibits asymmetric cache trust logic: cached permission grants are trusted and returned immediately, but cached denials from the same permission cache are ignored, leading to a fresh database lookup. This allows stale cached grants to provide access to revoked resources, posing a security risk. ",
+        "severity": "High"
+      },
+      {
+        "comment": "The test comment says the cached permissions 'allow access', but the map stores false for dashboards:uid:dash1, so checkPermission will still treat this scope as not allowed.",
+        "severity": "Low"
+      }
+    ]
+  },
+  {
+    "pr_title": "Plugins: Chore: Renamed instrumentation middleware to metrics middleware",
+    "url": "https://github.com/grafana/grafana/pull/76186",
+    "comments": [
+      {
+        "comment": "The ContextualLoggerMiddleware methods (QueryData, CallResource, CheckHealth, CollectMetrics) panic when a nil request is received. This occurs because they directly access req.PluginContext (via the instrumentContext function) without first checking if req is nil. This is a regression, as previous middleware layers gracefully handled nil requests.",
+        "severity": "High"
+      },
+      {
+        "comment": "The traceID is no longer logged for plugin requests. During a refactoring, the tracing import and the logic to extract and add traceID from the context to log parameters were removed from the LoggerMiddleware. The newly introduced ContextualLoggerMiddleware does not add this information, resulting in missing traceID in plugin request logs and impacting debugging and request tracing capabilities.",
+        "severity": "Low"
+      }
+    ]
+  },
+  {
+    "pr_title": "Advanced Query Processing Architecture",
+    "url": "https://github.com/grafana/grafana/pull/107534",
+    "comments": [
+      {
+        "comment": "The applyTemplateVariables method is called with request.filters as the third parameter, but this parameter is not used in the corresponding test setup.",
+        "severity": "Low"
+      }
+    ]
+  },
+  {
+    "pr_title": "Notification Rule Processing Engine",
+    "url": "https://github.com/grafana/grafana/pull/106778",
+    "comments": [
+      {
+        "comment": "The rendered GrafanaRuleListItem is missing the required key prop for React list items. This can cause rendering issues when the list order changes.",
+        "severity": "Medium"
+      },
+      {
+        "comment": "RuleActionsButtons is invoked with only promRule, but SilenceGrafanaRuleDrawer inside RuleActionsButtons still depends on a Grafana Ruler rule being present, so for Grafana rules coming from list views the 'Silence notifications' menu entry (now driven by Grafana Prom abilities) will toggle showSilenceDrawer without ever rendering the drawer. This means clicking 'Silence notifications' for these rules has no visible effect, even when abilities indicate silencing is allowed.",
+        "severity": "High"
+      }
+    ]
+  }
+]

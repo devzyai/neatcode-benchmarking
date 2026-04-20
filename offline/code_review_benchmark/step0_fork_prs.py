@@ -74,9 +74,26 @@ class PreparedMirrorPR:
 
 
 class GitHubPRForker:
-    def __init__(self, token: str, org: str):
+    def __init__(
+        self,
+        token: str,
+        org: str,
+        *,
+        bench_date: str | None = None,
+        upstream_clone_parent: str | None = None,
+    ):
         self.token = token
         self.org = org
+        if bench_date is not None and (len(bench_date) != 8 or not bench_date.isdigit()):
+            raise ValueError("--bench-date must be YYYYMMDD (8 digits)")
+        self._bench_date_str = bench_date
+        # If set, upstream clones live under this directory and are reused across runs
+        # (not deleted on exit). First use clones into ``{parent}/{owner}__{repo}/``.
+        self._upstream_clone_parent = (
+            str(Path(upstream_clone_parent).expanduser().resolve())
+            if upstream_clone_parent
+            else None
+        )
         self.base_url = "https://api.github.com"
         self.headers = {
             "Authorization": f"token {token}",
@@ -186,7 +203,11 @@ class GitHubPRForker:
         so mixed ``url`` sources (e.g. greptile mirrors vs upstream) share one bench repo.
         Without it, names include ``original_repo`` (single-PR CLI).
         """
-        date_str = datetime.now().strftime("%Y%m%d")
+        date_str = (
+            self._bench_date_str
+            if self._bench_date_str is not None
+            else datetime.now().strftime("%Y%m%d")
+        )
         tool_slug = re.sub(r"[^a-zA-Z0-9]+", "-", ai_tool_name.lower()).strip("-")[:30]
         if config_prefix:
             return f"{config_prefix}__{tool_slug}__{date_str}"
@@ -222,6 +243,42 @@ class GitHubPRForker:
             return self._clone_cache[key]
 
         clone_url = f"https://github.com/{owner}/{repo}.git"
+        if self._upstream_clone_parent:
+            dest = Path(self._upstream_clone_parent) / f"{owner}__{repo}"
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            if (dest / ".git").is_dir():
+                print(f"\nReusing upstream clone at {dest}")
+                r = self.run_git(str(dest), "remote", "get-url", "origin")
+                if r.returncode != 0 or f"github.com/{owner}/{repo}" not in (
+                    r.stdout or ""
+                ) + (r.stderr or ""):
+                    raise Exception(
+                        f"Existing clone at {dest} does not match {owner}/{repo} "
+                        f"(remote get-url failed or wrong remote)"
+                    )
+                fetch = subprocess.run(
+                    ["git", "-C", str(dest), "fetch", "origin"],
+                    capture_output=True,
+                    text=True,
+                )
+                if fetch.returncode != 0:
+                    raise Exception(
+                        f"git fetch origin failed in reuse clone:\n"
+                        f"{fetch.stdout}\n{fetch.stderr}"
+                    )
+                self._clone_cache[key] = str(dest)
+                return str(dest)
+
+            print(f"\nCloning {owner}/{repo} into {dest} (persistent cache)...")
+            result = subprocess.run(
+                ["git", "clone", clone_url, str(dest)], capture_output=True, text=True
+            )
+            if result.returncode != 0:
+                shutil.rmtree(dest, ignore_errors=True)
+                raise Exception(f"Clone failed:\nstdout: {result.stdout}\nstderr: {result.stderr}")
+            self._clone_cache[key] = str(dest)
+            return str(dest)
+
         tmpdir = tempfile.mkdtemp(prefix=f"fork-{owner}-{repo}-")
         print(f"\nCloning {owner}/{repo}...")
         result = subprocess.run(
@@ -235,7 +292,12 @@ class GitHubPRForker:
         return tmpdir
 
     def _cleanup_clones(self):
+        root = self._upstream_clone_parent
+        root_resolved = Path(root).resolve() if root else None
         for path in self._clone_cache.values():
+            p = Path(path).resolve()
+            if root_resolved is not None and p.is_relative_to(root_resolved):
+                continue
             shutil.rmtree(path, ignore_errors=True)
         self._clone_cache.clear()
 
@@ -364,6 +426,21 @@ def main():
     parser.add_argument("--org", required=True, help="Target organization")
     parser.add_argument("--name", required=True, help="AI tool name for repo naming")
     parser.add_argument(
+        "--bench-date",
+        default=None,
+        metavar="YYYYMMDD",
+        help="Bench repo name suffix instead of today (reuse grafana__TOOL__YYYYMMDD)",
+    )
+    parser.add_argument(
+        "--upstream-clone-dir",
+        default=None,
+        metavar="DIR",
+        help=(
+            "Parent directory for persistent upstream git clones (e.g. ./upstream_clone). "
+            "Reuses ``DIR/owner__repo/`` across runs instead of recloning to a temp dir each time."
+        ),
+    )
+    parser.add_argument(
         "--token", default=os.environ.get("GITHUB_TOKEN"), help="GitHub token"
     )
     args = parser.parse_args()
@@ -377,7 +454,12 @@ def main():
         sys.exit(1)
 
     try:
-        forker = GitHubPRForker(args.token, args.org)
+        forker = GitHubPRForker(
+            args.token,
+            args.org,
+            bench_date=args.bench_date,
+            upstream_clone_parent=args.upstream_clone_dir,
+        )
 
         if args.file:
             urls = _load_pr_urls_from_file(args.file)

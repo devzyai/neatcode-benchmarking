@@ -48,6 +48,8 @@ Each PR has curated golden comments with severity labels (Low / Medium / High / 
 
 See [`offline/README.md`](offline/README.md) for setup and usage.
 
+**Grafana mini (first 5 PRs only):** after checking out the branch your team shares, use [`offline/docs/LIMITED_BENCHMARK_GRAFANA_MINI.md`](offline/docs/LIMITED_BENCHMARK_GRAFANA_MINI.md) — self-contained in this repo (no extra benchmark checkout).
+
 ### Online — continuous, fresh PRs, no data leakage
 
 The online benchmark continuously samples **fresh real-world PRs from GitHub** where code review bots left comments. Because the PRs are recent, tools can't have memorized them during training.
