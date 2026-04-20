@@ -1,6 +1,6 @@
 # Offline Code Review Benchmark
 
-Open replication of the code review benchmark used by companies like [Augment](https://www.augmentcode.com/blog/introducing-augment-code-review) and [Greptile](https://www.greptile.com/blog/code-review-benchmark). 50 PRs across 5 major open-source codebases with human-verified golden comments. An LLM judge evaluates each tool: does it find real issues? Does it generate noise?
+Open replication of the code review benchmark used by companies like [Augment](https://www.augmentcode.com/blog/introducing-augment-code-review) and [Greptile](https://www.greptile.com/blog/code-review-benchmark). 40 PRs across four major open-source codebases with human-verified golden comments. An LLM judge evaluates each tool: does it find real issues? Does it generate noise?
 
 ## Evaluated tools
 
@@ -22,7 +22,7 @@ Adding a new tool requires forking the benchmark PRs and collecting the tool's r
 
 ## Methodology
 
-Each of the 50 benchmark PRs has a set of **golden comments**: real issues that a human reviewer identified, with severity labels (Low / Medium / High / Critical). These are the ground truth.
+Each of the 40 benchmark PRs has a set of **golden comments**: real issues that a human reviewer identified, with severity labels (Low / Medium / High / Critical). These are the ground truth.
 
 For each tool, the pipeline:
 1. **Extracts** individual issues from the tool's review comments (line-specific comments become candidates directly; general comments are sent to an LLM to extract distinct issues)
@@ -75,6 +75,20 @@ pytest
 ruff check .
 ```
 
+## Grafana mini (5 PRs)
+
+Checkout the branch your team shares, then **[`docs/LIMITED_BENCHMARK_GRAFANA_MINI.md`](docs/LIMITED_BENCHMARK_GRAFANA_MINI.md)** (short step list). Dataset notes: [`golden_grafana_only/README.md`](golden_grafana_only/README.md).
+
+---
+
+## Paths and reporting defaults
+
+Judge outputs (steps 2–3) go under `results/<sanitized MARTIAN_MODEL>/` (slashes become underscores), e.g. `MARTIAN_MODEL=openai/gpt-5.2` → `results/openai_gpt-5.2/`.
+
+- **`analysis/report_all_tools.py`** defaults to `results/openai_gpt-5.2/evaluations.json`. Use **`--subset-from-golden`** + **`--subset-limit`** or **`--subset-urls-file`** to aggregate micro metrics on a fixed list of golden PRs only (same PRs as a small step 0 run — useful for before/after comparisons without re-judging the full benchmark).
+- **`analysis/report_scores_by_repo.py`** uses the same file when `MARTIAN_MODEL` is unset (`openai/gpt-5.2`). Override with `--evaluations` or set `MARTIAN_MODEL` in `.env` for other runs.
+- **`analysis/merge_neatcode_into_openai_gpt52.py`** merges `neatcode` from `results/gpt-5.2/` into `results/openai_gpt-5.2/` by default; use `--neat-subdir` / `--openai-subdir` if your directory names differ from those judge outputs.
+
 ---
 
 ## Pipeline steps
@@ -118,6 +132,8 @@ The orchestrator runs three stages:
 | `--prs-per-repo` | 10 | PR URLs per file |
 | `--prepare-concurrency` | 10 | Parallel fetch+push tasks (stage 2) |
 | `--pr-open-concurrency` | 10 | Parallel GitHub API PR-open calls (stage 3) |
+| `--bench-date` | (today) | `YYYYMMDD` suffix for bench repo name; reuse `grafana__TOOL__20260416` on a later day |
+| `--upstream-clone-dir` | (none) | Parent dir for persistent `owner__repo` git clones; **reuse** across runs (no temp re-clone) |
 
 **Examples:**
 
@@ -133,10 +149,28 @@ uv run python -m code_review_benchmark.step0_orchestrate_forks \
 # Faster prepare for many different upstreams
 uv run python -m code_review_benchmark.step0_orchestrate_forks \
     --org my-org --name coderabbit --prepare-concurrency 20
+
+# Grafana only, first 5 golden PRs (committed slice: golden_grafana_only/grafana.json;
+# same URLs as analysis/subsets/grafana_first_5.urls). Steps 1–3 still use default golden_comments/.
+./scripts/grafana_mini_fork.sh --org my-org --name neatcode
+
+# Same, with safer defaults for flaky networks (persistent upstream clone, serial prepare/open):
+./scripts/grafana_mini_fork_safe.sh --org my-org --name neatcode
 ```
 
-**Repo naming:** `{golden_stem}__{tool}__{date}` (e.g. `sentry__coderabbit__20260407`).
-Each PR gets unique branches: `base-pr-{owner}-{repo}-{N}` and `pr-{owner}-{repo}-{N}`.
+See `golden_grafana_only/README.md` to regenerate that file after editing the first five PRs in `golden_comments/grafana.json`.
+
+**After one of five Grafana PRs opened:** use `golden_grafana_remaining_four/` (four URLs, no re-clone per PR — one orchestrator run, one upstream clone) and `--bench-date` if today is no longer the repo’s date suffix. See `golden_grafana_remaining_four/README.md`.
+
+**Bench repo names** (step 0 and step 1 share the same parsing):
+
+| Shape | Pattern | Example |
+|-------|---------|---------|
+| Single-PR (legacy) | `{config}__{upstream_repo}__{tool}__PR{n}__{date}` | `cal_dot_com__repo__tool-x__PR12__20240101` |
+| Shared multi-PR (legacy) | `{config}__{upstream_repo}__{tool}__{YYYYMMDD}` | four segments ending in `YYYYMMDD` |
+| Shared multi-PR (current) | `{config}__{tool}__{YYYYMMDD}` | `sentry__coderabbit__20260407` |
+
+**Head branches** opened in the bench repo: legacy `pr-{N}` (digits only) or current `pr-{owner}-{repo}-{N}` (upstream PR number is the trailing `-{N}`). Step 1 resolves golden comments by URL; for the three-part repo name it matches `golden_comments/{config}.json` plus PR number.
 
 The command exits `0` when all stages succeed, `1` when any task fails.
 The summary prints per-stage failure counts for easy triage.
@@ -144,7 +178,7 @@ The summary prints per-stage failure counts for easy triage.
 ### 1. Download PR data
 
 Aggregate PR reviews from benchmark repos with golden comments.
-Supports both old-format repos (one PR per repo) and new-format repos (multiple PRs per repo):
+Supports single-PR repos, legacy four-part shared repos, and three-part shared repos (see bench repo naming above). Multiple PRs in one repo are discovered from head branch names; `source_repo` in the output is taken from the golden PR URL when possible.
 
 ```bash
 # Full run (incremental - skips already downloaded)
@@ -246,6 +280,39 @@ uv run python analysis/benchmark_dashboard.py
 
 Open `analysis/benchmark_dashboard.html` in a browser to view results. Run this after adding new tools or re-running the judge to update the dashboard.
 
+### Leaderboard and per-repo scores
+
+After you have `results/openai_gpt-5.2/evaluations.json` (and optionally merged NeatCode with `results/gpt-5.2/`):
+
+```bash
+# Micro P/R/F1 for every tool (default path: openai_gpt-5.2)
+uv run python analysis/report_all_tools.py
+
+# Same leaderboard file, but only the first N PRs from a golden file (e.g. Grafana mini-slice)
+uv run python analysis/report_all_tools.py \
+  --subset-from-golden golden_comments/grafana.json --subset-limit 5
+
+# Or a fixed URL list (see analysis/subsets/grafana_first_5.urls)
+uv run python analysis/report_all_tools.py \
+  --subset-urls-file analysis/subsets/grafana_first_5.urls
+
+# Point at a merged evaluations.json from another clone (historical baseline)
+uv run python analysis/report_all_tools.py \
+  --evaluations /path/to/code-review-benchmark/offline/results/openai_gpt-5.2/evaluations.json \
+  --subset-from-golden golden_comments/grafana.json --subset-limit 5
+
+# Same metrics for one upstream product (keycloak | cal | grafana | sentry)
+uv run python analysis/report_scores_by_repo.py --repo keycloak --tool neatcode
+```
+
+**Workflow:** use **`--subset-*`** on the **previous** merged `evaluations.json` to record neatcode vs competitors on exactly the PRs you will re-fork. After step 0–3 on a new tool build, merge neatcode into `evaluations.json` and run the same command again to decide whether the new approach beats the old slice and how it ranks vs others.
+
+To copy **neatcode** evaluations/candidates from `results/gpt-5.2/` into the merged OpenAI leaderboard file (both dirs must exist):
+
+```bash
+uv run python analysis/merge_neatcode_into_openai_gpt52.py
+```
+
 ### 5. Summary table
 
 Show review counts by tool and repo:
@@ -256,10 +323,10 @@ uv run python -m code_review_benchmark.summary_table
 
 **Example output:**
 ```
-Tool        cal_dot_com  discourse    grafana      keycloak     sentry       Total
-----------------------------------------------------------------------------------
-claude      10           10           10           10           10           50
-coderabbit  10           10           10           10           10           50
+Tool        cal_dot_com  grafana      keycloak     sentry       Total
+----------------------------------------------------------------------
+claude      10           10           10           10           40
+coderabbit  10           10           10           10           40
 ...
 ```
 
@@ -276,6 +343,88 @@ uv run python -m code_review_benchmark.step4_export_by_tool --tool greptile
 ```
 
 **Output:** `results/{tool}_reviews.xlsx`
+
+---
+
+## GitHub Actions
+
+Benchmark automation is split into two workflows so fork setup does not require judge (Martian) secrets:
+
+| Workflow | File | Purpose |
+|----------|------|---------|
+| **Benchmark fork (step 0)** | [`.github/workflows/benchmark-fork.yml`](../.github/workflows/benchmark-fork.yml) | Orchestrate forks: create repos and open PRs in `benchmark_org`. |
+| **Benchmark evaluate (steps 1–3)** | [`.github/workflows/benchmark-evaluate.yml`](../.github/workflows/benchmark-evaluate.yml) | Download reviews → extract → dedup → judge. Uploads `offline/results/` as an artifact. |
+| **Benchmark delete repos** | [`.github/workflows/benchmark-delete-repos.yml`](../.github/workflows/benchmark-delete-repos.yml) | Optional: list or delete fork repos matching step 0 naming (**list** by default; choose **delete** to remove). |
+
+**Typical order:** run **Benchmark fork** first (or use existing fork repos), then **Benchmark evaluate** when PRs are ready. Both use `workflow_dispatch` only (Actions tab → select workflow → Run workflow).
+
+### Benchmark fork (`benchmark-fork.yml`)
+
+**Secrets:** `BENCHMARK_GH_TOKEN` only. Martian variables are **not** required.
+
+**Inputs:** `ref`, `benchmark_org`, `tool` (same meanings as below).
+
+### Benchmark evaluate (`benchmark-evaluate.yml`)
+
+**Secrets:** `BENCHMARK_GH_TOKEN`, `MARTIAN_API_KEY`, and `MARTIAN_MODEL` (or pass `judge_model`).
+
+**Workflow inputs**
+
+| Input | Meaning |
+|-------|---------|
+| `ref` | Git branch or tag of **this** (`neatcode-benchmarking`) repo to checkout. Use this to run a specific version of the benchmark scripts. Default: `main`. |
+| `benchmark_org` | GitHub organization slug where benchmark fork repos live (e.g. a dedicated eval org). Passed to `--org` for step 1. |
+| `tool` | Tool slug matching step 0 `--name` and repo name segments (e.g. `neatcode_staging`). |
+| `step1_force` | If true, passes `--force` to step 1 (refetch reviews). |
+| `step1_test` | If true, passes `--test` to step 1 (one repo per tool). |
+| `judge_model` | Optional. If set, overrides `MARTIAN_MODEL` for the judge. If empty, the `MARTIAN_MODEL` repository secret is used. |
+| `limit` | Optional. If non-empty, passed as `--limit` to steps 2 and 3 for smoke runs. |
+
+**Repository secrets (Settings → Secrets and variables → Actions)**
+
+| Secret | Required | Purpose |
+|--------|----------|---------|
+| `BENCHMARK_GH_TOKEN` | Yes (fork, evaluate, delete workflows) | Personal access token (classic or fine-grained) used as `GH_TOKEN` / `GITHUB_TOKEN` for `gh`. Must be able to **list and read** PRs in `benchmark_org`, **create repositories** there for step 0, and **delete repositories** there if you use the delete script or workflow. The default `GITHUB_TOKEN` in Actions cannot replace this for arbitrary orgs. |
+| `MARTIAN_API_KEY` | Yes (evaluate workflow only) | API key for the OpenAI-compatible judge endpoint. |
+| `MARTIAN_MODEL` | Yes for evaluate (unless you always pass `judge_model`) | Default judge model id (e.g. `openai/gpt-5.2`). Same value as in local `.env`. |
+
+Optional: add `MARTIAN_BASE_URL` only if you use a non-default judge endpoint; for a custom base URL you can extend the workflow `env` or rely on local `.env` when running manually.
+
+### Deleting benchmark repos
+
+Bench repo names follow step 0 (see [bench naming](#paths-and-reporting-defaults) above): they end with `__{tool_slug}__{YYYYMMDD}`. The **`--org`** argument is the **account that owns the forks**: a GitHub **Organization** slug, or a **user** login if the forks live under a personal account (the script lists via the org API first, then falls back to the user API if the name is not an org).
+
+The script uses the **`gh` CLI** (same as other steps). **GitHub-hosted runners** (`ubuntu-latest`) already include `gh`; you do not install it in the workflow. Locally, install [GitHub CLI](https://cli.github.com/) or rely on `GH_TOKEN` with a `gh` binary.
+
+To remove repos from that account after a run:
+
+```bash
+cd offline
+# Dry-run: lists matching repos (default — no deletes)
+uv run python -m code_review_benchmark.delete_benchmark_repos --org YOUR_ORG --tool YOUR_TOOL_NAME
+
+# Only repos for a single day
+uv run python -m code_review_benchmark.delete_benchmark_repos --org YOUR_ORG --tool YOUR_TOOL_NAME --date 20260401
+
+# Actually delete (irreversible)
+uv run python -m code_review_benchmark.delete_benchmark_repos --org YOUR_ORG --tool YOUR_TOOL_NAME --execute
+```
+
+The GitHub Actions workflow **Benchmark delete repos** runs the same CLI. Use the **`action`** input: **`list`** (default) prints matches only; choose **`delete`** to pass **`--execute`** and remove repos (irreversible). A boolean checkbox was unreliable in bash, so this workflow uses an explicit **`list` / `delete`** choice instead.
+
+**PAT:** deleting repositories requires **`BENCHMARK_GH_TOKEN`** to include **administration: delete repositories** (or equivalent classic scope) on `benchmark_org`. Fine-grained PATs must allow repository deletion for that org.
+
+**PAT permissions (typical)**
+
+- **Step 1 only:** read access to repositories in `benchmark_org` (metadata, pull requests, contents as needed by `gh`).
+- **Step 0 (orchestrate):** additionally **create** repositories (and admin as required by your org policy) in `benchmark_org`.
+
+Scope the token to the **benchmark organization** when using fine-grained PATs.
+
+**Scripts ref vs NeatCode backend**
+
+- The workflow **`ref` / branch** selects which **commit of these benchmark scripts** runs (step 1–3 code, golden files, etc.).
+- It does **not** select which version of **NeatCode** reviews the PRs. Review behavior is determined by the **GitHub App** installation on `benchmark_org` and the **webhook URL** configured for that app (e.g. staging or an experimental deployment). To compare backend changes, deploy the desired build and ensure the benchmark app’s webhook points at it before re-running reviews and step 1 with `step1_force` where appropriate.
 
 ---
 
@@ -298,7 +447,7 @@ uv run python -m code_review_benchmark.step4_export_by_tool --tool greptile
 ]
 ```
 
-Source files: `sentry.json`, `grafana.json`, `keycloak.json`, `discourse.json`, `cal_dot_com.json`
+Source files: `sentry.json`, `grafana.json`, `keycloak.json`, `cal_dot_com.json`
 
 ### benchmark_data.json
 

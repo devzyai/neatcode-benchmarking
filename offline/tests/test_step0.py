@@ -22,6 +22,8 @@ def _make_forker() -> step0.GitHubPRForker:
     forker = step0.GitHubPRForker.__new__(step0.GitHubPRForker)
     forker.token = "token"
     forker.org = "my-org"
+    forker._bench_date_str = None
+    forker._upstream_clone_parent = None
     forker._initialized_repos = set()
     forker._clone_cache = {}
     return forker
@@ -73,6 +75,21 @@ def test_generate_repo_name_without_prefix(monkeypatch):
 
     result = forker.generate_repo_name("My Tool", original_repo="my-upstream")
     assert result == "my-upstream__my-tool__20240201"
+
+
+def test_generate_repo_name_bench_date_overrides_today(monkeypatch):
+    class DummyDateTime:
+        @staticmethod
+        def now():
+            return SimpleNamespace(strftime=lambda _: "20990101")
+
+    monkeypatch.setattr(step0, "datetime", DummyDateTime)
+    forker = _make_forker()
+    forker._bench_date_str = "20260416"
+
+    assert forker.generate_repo_name("neatcode-experimental", config_prefix="grafana") == (
+        "grafana__neatcode-experimental__20260416"
+    )
 
 
 # ------------------------------------------------------------------

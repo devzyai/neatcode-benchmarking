@@ -27,7 +27,6 @@ REPO_LANGUAGE_MAP = {
     "keycloak": "Java",
     "sentry": "Python",
     "grafana": "Go",
-    "discourse": "Ruby",
     "cal.com": "TypeScript",
     "calcom": "TypeScript",
     "cal_dot_com": "TypeScript",

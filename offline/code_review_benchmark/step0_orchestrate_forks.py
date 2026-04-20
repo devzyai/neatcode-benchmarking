@@ -11,6 +11,9 @@ Usage:
         --org code-review-benchmark \
         --name coderabbit \
         --golden-dir golden_comments
+
+    # Reuse bench repo name from another day:
+    uv run python -m code_review_benchmark.step0_orchestrate_forks ... --bench-date 20260416
 """
 
 import argparse
@@ -24,7 +27,6 @@ from code_review_benchmark.step0_fork_prs import GitHubPRForker
 from code_review_benchmark.step0_fork_prs import PreparedMirrorPR
 from code_review_benchmark.step0_fork_prs import _load_pr_urls_from_file
 from code_review_benchmark.step0_fork_prs import load_dotenv
-
 
 # ---------------------------------------------------------------------------
 # Stage 1 helpers
@@ -136,7 +138,8 @@ def main() -> None:
         "--repos",
         type=int,
         default=5,
-        help="How many golden JSON files (repos) to process (default: 5)",
+        help="Max golden JSON files to process, in sorted order (default: 5; "
+        "capped by how many *.json exist under --golden-dir, e.g. 4)",
     )
     parser.add_argument(
         "--prs-per-repo",
@@ -155,6 +158,21 @@ def main() -> None:
         type=int,
         default=10,
         help="Parallel POST /pulls calls in stage 3 (default: 10)",
+    )
+    parser.add_argument(
+        "--bench-date",
+        default=None,
+        metavar="YYYYMMDD",
+        help="Bench repo name suffix instead of today (reuse grafana__TOOL__YYYYMMDD)",
+    )
+    parser.add_argument(
+        "--upstream-clone-dir",
+        default=None,
+        metavar="DIR",
+        help=(
+            "Parent directory for persistent upstream git clones (e.g. ./upstream_clone). "
+            "Reuses ``DIR/owner__repo/`` across runs instead of recloning each time."
+        ),
     )
     args = parser.parse_args()
 
@@ -178,7 +196,12 @@ def main() -> None:
     # ------------------------------------------------------------------
     # Stage 1: clone upstreams + bootstrap bench repos (serial)
     # ------------------------------------------------------------------
-    forker = GitHubPRForker(args.token, args.org)
+    forker = GitHubPRForker(
+        args.token,
+        args.org,
+        bench_date=args.bench_date,
+        upstream_clone_parent=args.upstream_clone_dir,
+    )
     work_items, bootstrap_failures = _collect_work_items(
         forker, selected_files, args.name, args.prs_per_repo
     )

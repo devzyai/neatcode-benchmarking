@@ -1,5 +1,5 @@
 # Delete benchmark fork repos whose names match step 0 naming (__tool_slug__YYYYMMDD).
-# Default: dry-run (list only). Set dry_run to false to pass --execute (destructive).
+# Default: list only. Use action=delete to pass --execute (destructive).
 
 name: Benchmark delete repos
 
@@ -23,11 +23,14 @@ on:
         required: false
         type: string
         default: ""
-      dry_run:
-        description: "If true (default), only list matching repos; if false, DELETE them"
+      action:
+        description: "list = print matches only; delete = actually remove repos (irreversible)"
         required: false
-        type: boolean
-        default: true
+        type: choice
+        options:
+          - list
+          - delete
+        default: list
 
 concurrency:
   group: benchmark-delete-${{ github.repository }}
@@ -67,12 +70,12 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
-      - name: Delete matching repos (dry-run unless dry_run is false)
+      - name: Delete matching repos (list or delete per action input)
         run: |
           set -euo pipefail
           ARGS=(--org "${{ inputs.benchmark_org }}" --tool "${{ inputs.tool }}")
           if [[ -n "${{ inputs.date }}" ]]; then ARGS+=(--date "${{ inputs.date }}"); fi
-          # Only pass --execute when explicitly false (boolean inputs can render empty in bash;
-          # using != "true" would wrongly add --execute when dry_run is empty).
-          if [[ "${{ inputs.dry_run }}" == "false" ]]; then ARGS+=(--execute); fi
+          # Use choice input (not boolean): GitHub booleans often stringify badly in bash and
+          # never match "false", so --execute was never passed when unchecking the old checkbox.
+          if [[ "${{ inputs.action }}" == "delete" ]]; then ARGS+=(--execute); fi
           uv run python -m code_review_benchmark.delete_benchmark_repos "${ARGS[@]}"
